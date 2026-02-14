@@ -1,24 +1,11 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
+// Redis service disabled for minimal build
+// This is a stub implementation that provides the same interface without Redis dependency
 Object.defineProperty(exports, "__esModule", { value: true });
-const ioredis_1 = __importDefault(require("ioredis"));
 class RedisService {
     static instance;
-    client;
     constructor() {
-        this.client = new ioredis_1.default(process.env.REDIS_URL || 'redis://localhost:6379', {
-            enableReadyCheck: false,
-            maxRetriesPerRequest: null,
-            lazyConnect: true,
-        });
-        this.client.on('connect', () => {
-            console.log('✅ Redis connected successfully');
-        });
-        this.client.on('error', (error) => {
-            console.error('❌ Redis connection error:', error);
-        });
+        console.log('⚠️ Redis service disabled (minimal build)');
     }
     static getInstance() {
         if (!RedisService.instance) {
@@ -27,69 +14,34 @@ class RedisService {
         return RedisService.instance;
     }
     async connect() {
-        try {
-            await this.client.connect();
-        }
-        catch (error) {
-            console.error('❌ Redis connection failed:', error);
-            // Don't exit process for Redis - continue without cache
-        }
+        // No-op for minimal build
+        console.log('ℹ️ Redis connection skipped (minimal build)');
     }
     async disconnect() {
-        await this.client.quit();
-        console.log('🔌 Redis disconnected');
+        // No-op for minimal build
+        console.log('ℹ️ Redis disconnection skipped (minimal build)');
     }
     async set(key, value, ttl) {
-        try {
-            const serializedValue = JSON.stringify(value);
-            if (ttl) {
-                await this.client.setex(key, ttl, serializedValue);
-            }
-            else {
-                await this.client.set(key, serializedValue);
-            }
-        }
-        catch (error) {
-            console.error('Redis set error:', error);
-        }
+        // No-op for minimal build - data not cached
+        console.log(`ℹ️ Redis set skipped for key: ${key} (minimal build)`);
     }
     async get(key) {
-        try {
-            const value = await this.client.get(key);
-            return value ? JSON.parse(value) : null;
-        }
-        catch (error) {
-            console.error('Redis get error:', error);
-            return null;
-        }
+        // Always return null for minimal build - no caching
+        console.log(`ℹ️ Redis get skipped for key: ${key} (minimal build)`);
+        return null;
     }
     async del(key) {
-        try {
-            await this.client.del(key);
-        }
-        catch (error) {
-            console.error('Redis delete error:', error);
-        }
+        // No-op for minimal build
+        console.log(`ℹ️ Redis delete skipped for key: ${key} (minimal build)`);
     }
     async exists(key) {
-        try {
-            const result = await this.client.exists(key);
-            return result === 1;
-        }
-        catch (error) {
-            console.error('Redis exists error:', error);
-            return false;
-        }
+        // Always return false for minimal build
+        console.log(`ℹ️ Redis exists check skipped for key: ${key} (minimal build)`);
+        return false;
     }
     async healthCheck() {
-        try {
-            const pong = await this.client.ping();
-            return pong === 'PONG';
-        }
-        catch (error) {
-            console.error('Redis health check failed:', error);
-            return false;
-        }
+        // Always return true for minimal build (no Redis to check)
+        return true;
     }
 }
 exports.default = RedisService;

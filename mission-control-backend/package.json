@@ -30,6 +30,7 @@
     "bcrypt": "^5.1.1",
     "dotenv": "^16.3.1",
     "fastify": "^4.25.2",
+    "fastq": "^1.15.0",
     "jsonwebtoken": "^9.0.2",
     "prisma": "^5.8.1"
   },
