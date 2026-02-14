@@ -1,4 +1,7 @@
-export default async function oauthRoutes(fastify) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = oauthRoutes;
+async function oauthRoutes(fastify) {
     // OAuth feature placeholder endpoints
     fastify.get('/providers', async (request, reply) => {
         return reply.send({

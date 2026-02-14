@@ -1,4 +1,7 @@
-export class RBACService {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.RBACService = void 0;
+class RBACService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
@@ -407,4 +410,5 @@ export class RBACService {
         });
     }
 }
+exports.RBACService = RBACService;
 //# sourceMappingURL=rbac.js.map

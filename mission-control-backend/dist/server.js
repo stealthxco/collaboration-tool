@@ -1,28 +1,33 @@
-import fastify from 'fastify';
-import cors from '@fastify/cors';
-import websocket from '@fastify/websocket';
-import dotenv from 'dotenv';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const fastify_1 = __importDefault(require("fastify"));
+const cors_1 = __importDefault(require("@fastify/cors"));
+// import websocket from '@fastify/websocket'; // MINIMAL BUILD: Disabled WebSocket
+const dotenv_1 = __importDefault(require("dotenv"));
 // Import services
-import DatabaseService from './services/database';
-import RedisService from './services/redis';
-import WebSocketService from './websocket/socket';
+const database_1 = __importDefault(require("./services/database"));
+// import RedisService from './services/redis'; // MINIMAL BUILD: Disabled Redis
+// import WebSocketService from './websocket/socket'; // MINIMAL BUILD: Disabled WebSocket
 // Import routes
-import healthRoutes from './routes/health';
-import agentRoutes from './routes/agents';
-import missionRoutes from './routes/missions';
-import commentRoutes from './routes/comments';
-import authRoutes from './routes/auth';
+const health_1 = __importDefault(require("./routes/health"));
+const agents_1 = __importDefault(require("./routes/agents"));
+const missions_1 = __importDefault(require("./routes/missions"));
+const comments_1 = __importDefault(require("./routes/comments"));
+const auth_1 = __importDefault(require("./routes/auth"));
 // Import middleware
-import { securityHeaders } from './middleware/auth';
+const auth_2 = require("./middleware/auth");
 // Load environment variables
-dotenv.config();
+dotenv_1.default.config();
 class Server {
     app;
     db;
-    redis;
-    ws;
+    // private redis: RedisService; // MINIMAL BUILD: Disabled Redis
+    // private ws: WebSocketService; // MINIMAL BUILD: Disabled WebSocket
     constructor(options = {}) {
-        this.app = fastify({
+        this.app = (0, fastify_1.default)({
             logger: options.logger !== false ? {
                 level: process.env.NODE_ENV === 'development' ? 'info' : 'warn',
                 transport: process.env.NODE_ENV === 'development'
@@ -38,16 +43,16 @@ class Server {
             } : false,
         });
         // Initialize services
-        this.db = DatabaseService.getInstance();
-        this.redis = RedisService.getInstance();
-        this.ws = WebSocketService.getInstance();
+        this.db = database_1.default.getInstance();
+        // this.redis = RedisService.getInstance(); // MINIMAL BUILD: Disabled Redis
+        // this.ws = WebSocketService.getInstance(); // MINIMAL BUILD: Disabled WebSocket
         this.setupMiddleware();
         this.setupRoutes();
         this.setupErrorHandlers();
     }
     async setupMiddleware() {
         // CORS
-        await this.app.register(cors, {
+        await this.app.register(cors_1.default, {
             origin: process.env.NODE_ENV === 'development'
                 ? true
                 : (process.env.CORS_ORIGIN || 'http://localhost:3000').split(','),
@@ -55,9 +60,9 @@ class Server {
             allowedHeaders: ['Content-Type', 'Authorization'],
         });
         // WebSocket support
-        await this.app.register(websocket);
+        // await this.app.register(websocket); // MINIMAL BUILD: Disabled WebSocket
         // Security headers middleware
-        this.app.addHook('onRequest', securityHeaders);
+        this.app.addHook('onRequest', auth_2.securityHeaders);
         // Request logging middleware
         this.app.addHook('onRequest', async (request, reply) => {
             request.startTime = Date.now();
@@ -84,13 +89,13 @@ class Server {
     }
     async setupRoutes() {
         // Health checks (no /api prefix)
-        await this.app.register(healthRoutes);
+        await this.app.register(health_1.default);
         // API routes
         await this.app.register(async (fastify) => {
-            await fastify.register(authRoutes, { prefix: '/api/auth' });
-            await fastify.register(agentRoutes, { prefix: '/api/agents' });
-            await fastify.register(missionRoutes, { prefix: '/api/missions' });
-            await fastify.register(commentRoutes, { prefix: '/api/comments' });
+            await fastify.register(auth_1.default, { prefix: '/api/auth' });
+            await fastify.register(agents_1.default, { prefix: '/api/agents' });
+            await fastify.register(missions_1.default, { prefix: '/api/missions' });
+            await fastify.register(comments_1.default, { prefix: '/api/comments' });
         });
         // Root route
         this.app.get('/', async (request, reply) => {
@@ -145,7 +150,7 @@ class Server {
                 await this.app.close();
                 // Disconnect from services
                 await this.db.disconnect();
-                await this.redis.disconnect();
+                // await this.redis.disconnect(); // MINIMAL BUILD: Disabled Redis
                 this.app.log.info('Graceful shutdown completed');
                 process.exit(0);
             }
@@ -163,9 +168,9 @@ class Server {
         try {
             // Connect to services
             await this.db.connect();
-            await this.redis.connect();
+            // await this.redis.connect(); // MINIMAL BUILD: Disabled Redis
             // Initialize WebSocket
-            this.ws.initialize(this.app);
+            // this.ws.initialize(this.app); // MINIMAL BUILD: Disabled WebSocket
             // Start server
             await this.app.listen({ port: serverPort, host: serverHost });
             console.log(`
@@ -189,7 +194,7 @@ class Server {
         return this.app;
     }
 }
-export default Server;
+exports.default = Server;
 // Auto-start if this file is run directly
 if (require.main === module) {
     const server = new Server();

@@ -1,5 +1,8 @@
+"use strict";
 // OAuth service placeholder - simplified for initial deployment
-export class OAuthService {
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.OAuthService = void 0;
+class OAuthService {
     configs = new Map();
     constructor() {
         // OAuth providers are not configured yet
@@ -28,5 +31,6 @@ export class OAuthService {
         throw new Error(`Token refresh for ${provider} not implemented yet`);
     }
 }
-export default OAuthService;
+exports.OAuthService = OAuthService;
+exports.default = OAuthService;
 //# sourceMappingURL=oauth.js.map

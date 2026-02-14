@@ -1,9 +1,14 @@
-import Redis from 'ioredis';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const ioredis_1 = __importDefault(require("ioredis"));
 class RedisService {
     static instance;
     client;
     constructor() {
-        this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
+        this.client = new ioredis_1.default(process.env.REDIS_URL || 'redis://localhost:6379', {
             enableReadyCheck: false,
             maxRetriesPerRequest: null,
             lazyConnect: true,
@@ -87,5 +92,5 @@ class RedisService {
         }
     }
 }
-export default RedisService;
+exports.default = RedisService;
 //# sourceMappingURL=redis.js.map

@@ -1,5 +1,8 @@
-import { prisma } from '../services/database.js';
-export default async function analyticsRoutes(fastify) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = analyticsRoutes;
+const database_js_1 = require("../services/database.js");
+async function analyticsRoutes(fastify) {
     // Get dashboard overview
     fastify.get('/overview', async (request, reply) => {
         try {
@@ -8,15 +11,15 @@ export default async function analyticsRoutes(fastify) {
             const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
             // Basic mission statistics
             const missionStats = {
-                total: await prisma.mission.count(),
-                pending: await prisma.mission.count({ where: { status: 'PENDING' } }),
-                inProgress: await prisma.mission.count({ where: { status: 'IN_PROGRESS' } }),
-                completed: await prisma.mission.count({ where: { status: 'COMPLETED' } }),
-                failed: await prisma.mission.count({ where: { status: 'FAILED' } }),
-                recentlyCreated: await prisma.mission.count({
+                total: await database_js_1.prisma.mission.count(),
+                pending: await database_js_1.prisma.mission.count({ where: { status: 'PENDING' } }),
+                inProgress: await database_js_1.prisma.mission.count({ where: { status: 'IN_PROGRESS' } }),
+                completed: await database_js_1.prisma.mission.count({ where: { status: 'COMPLETED' } }),
+                failed: await database_js_1.prisma.mission.count({ where: { status: 'FAILED' } }),
+                recentlyCreated: await database_js_1.prisma.mission.count({
                     where: { createdAt: { gte: last7Days } }
                 }),
-                recentlyCompleted: await prisma.mission.count({
+                recentlyCompleted: await database_js_1.prisma.mission.count({
                     where: {
                         status: 'COMPLETED',
                         completedAt: { gte: last7Days }
@@ -25,20 +28,20 @@ export default async function analyticsRoutes(fastify) {
             };
             // Agent statistics
             const agentStats = {
-                total: await prisma.agent.count(),
-                idle: await prisma.agent.count({ where: { status: 'IDLE' } }),
-                busy: await prisma.agent.count({ where: { status: 'BUSY' } }),
-                offline: await prisma.agent.count({ where: { status: 'OFFLINE' } }),
-                error: await prisma.agent.count({ where: { status: 'ERROR' } })
+                total: await database_js_1.prisma.agent.count(),
+                idle: await database_js_1.prisma.agent.count({ where: { status: 'IDLE' } }),
+                busy: await database_js_1.prisma.agent.count({ where: { status: 'BUSY' } }),
+                offline: await database_js_1.prisma.agent.count({ where: { status: 'OFFLINE' } }),
+                error: await database_js_1.prisma.agent.count({ where: { status: 'ERROR' } })
             };
             // User statistics
             const userStats = {
-                total: await prisma.user.count(),
-                active: await prisma.user.count({ where: { isActive: true } }),
-                recentlyJoined: await prisma.user.count({
+                total: await database_js_1.prisma.user.count(),
+                active: await database_js_1.prisma.user.count({ where: { isActive: true } }),
+                recentlyJoined: await database_js_1.prisma.user.count({
                     where: { createdAt: { gte: last30Days } }
                 }),
-                recentlyActive: await prisma.user.count({
+                recentlyActive: await database_js_1.prisma.user.count({
                     where: {
                         lastLoginAt: { gte: last7Days },
                         isActive: true
@@ -47,17 +50,17 @@ export default async function analyticsRoutes(fastify) {
             };
             // Comment statistics
             const commentStats = {
-                total: await prisma.comment.count(),
-                recent: await prisma.comment.count({
+                total: await database_js_1.prisma.comment.count(),
+                recent: await database_js_1.prisma.comment.count({
                     where: { createdAt: { gte: last7Days } }
                 })
             };
             // Priority distribution
             const priorityStats = {
-                low: await prisma.mission.count({ where: { priority: 'LOW' } }),
-                medium: await prisma.mission.count({ where: { priority: 'MEDIUM' } }),
-                high: await prisma.mission.count({ where: { priority: 'HIGH' } }),
-                urgent: await prisma.mission.count({ where: { priority: 'URGENT' } })
+                low: await database_js_1.prisma.mission.count({ where: { priority: 'LOW' } }),
+                medium: await database_js_1.prisma.mission.count({ where: { priority: 'MEDIUM' } }),
+                high: await database_js_1.prisma.mission.count({ where: { priority: 'HIGH' } }),
+                urgent: await database_js_1.prisma.mission.count({ where: { priority: 'URGENT' } })
             };
             return reply.send({
                 missions: missionStats,
@@ -95,26 +98,26 @@ export default async function analyticsRoutes(fastify) {
             }
             // Status breakdown
             const statusBreakdown = await Promise.all([
-                prisma.mission.count({ where: { ...whereClause, status: 'PENDING' } }),
-                prisma.mission.count({ where: { ...whereClause, status: 'IN_PROGRESS' } }),
-                prisma.mission.count({ where: { ...whereClause, status: 'COMPLETED' } }),
-                prisma.mission.count({ where: { ...whereClause, status: 'FAILED' } }),
-                prisma.mission.count({ where: { ...whereClause, status: 'CANCELLED' } })
+                database_js_1.prisma.mission.count({ where: { ...whereClause, status: 'PENDING' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, status: 'IN_PROGRESS' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, status: 'COMPLETED' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, status: 'FAILED' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, status: 'CANCELLED' } })
             ]);
             // Priority breakdown
             const priorityBreakdown = await Promise.all([
-                prisma.mission.count({ where: { ...whereClause, priority: 'LOW' } }),
-                prisma.mission.count({ where: { ...whereClause, priority: 'MEDIUM' } }),
-                prisma.mission.count({ where: { ...whereClause, priority: 'HIGH' } }),
-                prisma.mission.count({ where: { ...whereClause, priority: 'URGENT' } })
+                database_js_1.prisma.mission.count({ where: { ...whereClause, priority: 'LOW' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, priority: 'MEDIUM' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, priority: 'HIGH' } }),
+                database_js_1.prisma.mission.count({ where: { ...whereClause, priority: 'URGENT' } })
             ]);
             // Average progress
-            const avgProgress = await prisma.mission.aggregate({
+            const avgProgress = await database_js_1.prisma.mission.aggregate({
                 where: whereClause,
                 _avg: { progress: true }
             });
             // Recent missions
-            const recentMissions = await prisma.mission.findMany({
+            const recentMissions = await database_js_1.prisma.mission.findMany({
                 where: whereClause,
                 include: {
                     agent: { select: { id: true, name: true } },
@@ -139,7 +142,7 @@ export default async function analyticsRoutes(fastify) {
                 },
                 averageProgress: avgProgress._avg.progress || 0,
                 recentMissions,
-                totalMissions: await prisma.mission.count({ where: whereClause })
+                totalMissions: await database_js_1.prisma.mission.count({ where: whereClause })
             });
         }
         catch (error) {
@@ -150,7 +153,7 @@ export default async function analyticsRoutes(fastify) {
     // Get agent analytics
     fastify.get('/agents', async (request, reply) => {
         try {
-            const agents = await prisma.agent.findMany({
+            const agents = await database_js_1.prisma.agent.findMany({
                 include: {
                     _count: {
                         select: { missions: true }

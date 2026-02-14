@@ -1,8 +1,13 @@
-import { PrismaClient } from '@prisma/client';
-import dotenv from 'dotenv';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const client_1 = require("@prisma/client");
+const dotenv_1 = __importDefault(require("dotenv"));
 // Load environment variables
-dotenv.config();
-const prisma = new PrismaClient();
+dotenv_1.default.config();
+const prisma = new client_1.PrismaClient();
 async function seed() {
     console.log('🌱 Seeding database...');
     try {
@@ -213,5 +218,5 @@ async function seed() {
 if (require.main === module) {
     seed();
 }
-export default seed;
+exports.default = seed;
 //# sourceMappingURL=seed.js.map

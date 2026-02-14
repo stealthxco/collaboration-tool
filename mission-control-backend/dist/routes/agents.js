@@ -1,21 +1,26 @@
-import DatabaseService from '../services/database';
-import RedisService from '../services/redis';
-import WebSocketService from '../websocket/socket';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = __importDefault(require("../services/database"));
+// import RedisService from '../services/redis'; // MINIMAL BUILD: Disabled Redis
+// import WebSocketService from '../websocket/socket'; // MINIMAL BUILD: Disabled WebSocket
 async function agentRoutes(fastify, options) {
-    const db = DatabaseService.getInstance();
-    const redis = RedisService.getInstance();
-    const ws = WebSocketService.getInstance();
+    const db = database_1.default.getInstance();
+    // const redis = RedisService.getInstance(); // MINIMAL BUILD: Disabled Redis
+    // const ws = WebSocketService.getInstance(); // MINIMAL BUILD: Disabled WebSocket
     // GET /api/agents - List all agents with pagination
     fastify.get('/', async (request, reply) => {
         try {
             const { page = 1, limit = 10, status } = request.query;
             const skip = (page - 1) * limit;
-            // Check cache first
-            const cacheKey = `agents:page:${page}:limit:${limit}:status:${status || 'all'}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                return reply.send(cached);
-            }
+            // Check cache first - MINIMAL BUILD: Cache disabled
+            // const cacheKey = `agents:page:${page}:limit:${limit}:status:${status || 'all'}`;
+            // const cached = await redis.get<PaginatedResponse<AgentWithMissions>>(cacheKey);
+            // if (cached) {
+            //   return reply.send(cached);
+            // }
             const where = status ? { status: status } : {};
             const [agents, total] = await Promise.all([
                 db.prisma.agent.findMany({
@@ -44,7 +49,7 @@ async function agentRoutes(fastify, options) {
                 },
             };
             // Cache for 2 minutes
-            await redis.set(cacheKey, response, 120);
+            // await redis.set // MINIMAL BUILD: Cache disabled(cacheKey, response, 120);
             return reply.send(response);
         }
         catch (error) {
@@ -61,10 +66,10 @@ async function agentRoutes(fastify, options) {
             const { id } = request.params;
             // Check cache first
             const cacheKey = `agent:${id}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                return reply.send({ success: true, data: cached });
-            }
+            // const cached = await redis.get<AgentWithMissions>(cacheKey); // MINIMAL BUILD: Cache disabled
+            // if (cached) {
+            //   return reply.send({ success: true, data: cached });
+            // }
             const agent = await db.prisma.agent.findUnique({
                 where: { id },
                 include: {
@@ -83,7 +88,7 @@ async function agentRoutes(fastify, options) {
                 });
             }
             // Cache for 5 minutes
-            await redis.set(cacheKey, agent, 300);
+            // await redis.set // MINIMAL BUILD: Cache disabled(cacheKey, agent, 300);
             return reply.send({ success: true, data: agent });
         }
         catch (error) {
@@ -111,9 +116,9 @@ async function agentRoutes(fastify, options) {
                 },
             });
             // Invalidate cache
-            await redis.del('agents:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled('agents:*');
             // Broadcast update
-            ws.broadcastSystemNotification('info', `New agent created: ${agent.name}`);
+            // ws.broadcast // MINIMAL BUILD: WebSocket disabledSystemNotification('info', `New agent created: ${agent.name}`);
             return reply.status(201).send({
                 success: true,
                 data: agent,
@@ -148,11 +153,11 @@ async function agentRoutes(fastify, options) {
                 },
             });
             // Invalidate cache
-            await redis.del(`agent:${id}`);
-            await redis.del('agents:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${id}`);
+            // await redis.del // MINIMAL BUILD: Cache disabled('agents:*');
             // Broadcast status update if status changed
             if (updateData.status) {
-                ws.broadcastAgentStatusUpdate(id, updateData.status);
+                // ws.broadcast // MINIMAL BUILD: WebSocket disabledAgentStatusUpdate(id, updateData.status);
             }
             return reply.send({
                 success: true,
@@ -182,10 +187,10 @@ async function agentRoutes(fastify, options) {
                 where: { id },
             });
             // Invalidate cache
-            await redis.del(`agent:${id}`);
-            await redis.del('agents:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${id}`);
+            // await redis.del // MINIMAL BUILD: Cache disabled('agents:*');
             // Broadcast update
-            ws.broadcastSystemNotification('warning', `Agent deleted: ${agent.name}`);
+            // ws.broadcast // MINIMAL BUILD: WebSocket disabledSystemNotification('warning', `Agent deleted: ${agent.name}`);
             return reply.send({
                 success: true,
                 message: 'Agent deleted successfully',
@@ -206,5 +211,5 @@ async function agentRoutes(fastify, options) {
         }
     });
 }
-export default agentRoutes;
+exports.default = agentRoutes;
 //# sourceMappingURL=agents.js.map

@@ -1,8 +1,11 @@
-import { AuthService } from '../services/auth.js';
-import { prisma } from '../services/database.js';
-import { authMiddleware, authRateLimit } from '../middleware/auth.js';
-import oauthRoutes from './oauth.js';
-const authService = new AuthService(prisma);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = authRoutes;
+const auth_js_1 = require("../services/auth.js");
+const database_js_1 = require("../services/database.js");
+const auth_js_2 = require("../middleware/auth.js");
+// import oauthRoutes from './oauth.js'; // MINIMAL BUILD: Disabled OAuth
+const authService = new auth_js_1.AuthService(database_js_1.prisma);
 // Request/Response schemas for validation
 const registerSchema = {
     type: 'object',
@@ -94,10 +97,10 @@ const changePasswordSchema = {
         }
     }
 };
-export default async function authRoutes(fastify) {
+async function authRoutes(fastify) {
     // Apply rate limiting to auth routes
     await fastify.register(async function (fastify) {
-        fastify.addHook('preHandler', authRateLimit(10, 15 * 60 * 1000)); // 10 attempts per 15 minutes
+        fastify.addHook('preHandler', (0, auth_js_2.authRateLimit)(10, 15 * 60 * 1000)); // 10 attempts per 15 minutes
         /**
          * Register new user
          * POST /auth/register
@@ -256,7 +259,7 @@ export default async function authRoutes(fastify) {
      * POST /auth/logout
      */
     fastify.post('/logout', {
-        preHandler: [authMiddleware],
+        preHandler: [auth_js_2.authMiddleware],
         schema: {
             body: {
                 type: 'object',
@@ -297,7 +300,7 @@ export default async function authRoutes(fastify) {
      * POST /auth/logout-all
      */
     fastify.post('/logout-all', {
-        preHandler: [authMiddleware],
+        preHandler: [auth_js_2.authMiddleware],
         schema: {
             response: {
                 200: {
@@ -332,7 +335,7 @@ export default async function authRoutes(fastify) {
      * GET /auth/me
      */
     fastify.get('/me', {
-        preHandler: [authMiddleware],
+        preHandler: [auth_js_2.authMiddleware],
         schema: {
             response: {
                 200: {
@@ -372,7 +375,7 @@ export default async function authRoutes(fastify) {
                     error: 'Unauthorized'
                 });
             }
-            const fullUser = await prisma.user.findUnique({
+            const fullUser = await database_js_1.prisma.user.findUnique({
                 where: { id: request.user.id }
             });
             if (!fullUser) {
@@ -471,7 +474,7 @@ export default async function authRoutes(fastify) {
      * POST /auth/change-password
      */
     fastify.post('/change-password', {
-        preHandler: [authMiddleware],
+        preHandler: [auth_js_2.authMiddleware],
         schema: {
             body: changePasswordSchema,
             response: {
@@ -493,7 +496,7 @@ export default async function authRoutes(fastify) {
                 });
             }
             const { currentPassword, newPassword } = request.body;
-            const user = await prisma.user.findUnique({
+            const user = await database_js_1.prisma.user.findUnique({
                 where: { id: request.user.id }
             });
             if (!user || !user.password) {
@@ -510,7 +513,7 @@ export default async function authRoutes(fastify) {
                 });
             }
             const hashedNewPassword = await authService.hashPassword(newPassword);
-            await prisma.user.update({
+            await database_js_1.prisma.user.update({
                 where: { id: request.user.id },
                 data: { password: hashedNewPassword }
             });
@@ -533,7 +536,7 @@ export default async function authRoutes(fastify) {
      * GET /auth/validate
      */
     fastify.get('/validate', {
-        preHandler: [authMiddleware],
+        preHandler: [auth_js_2.authMiddleware],
         schema: {
             response: {
                 200: {
@@ -568,6 +571,6 @@ export default async function authRoutes(fastify) {
         });
     });
     // Register OAuth routes
-    await fastify.register(oauthRoutes, { prefix: '/oauth' });
+    // await fastify.register(oauthRoutes, { prefix: '/oauth' }); // MINIMAL BUILD: Disabled OAuth
 }
 //# sourceMappingURL=auth.js.map

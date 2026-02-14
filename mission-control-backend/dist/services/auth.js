@@ -1,12 +1,18 @@
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
-import { randomBytes } from 'crypto';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.AuthService = void 0;
+const bcrypt_1 = __importDefault(require("bcrypt"));
+const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const crypto_1 = require("crypto");
 const SALT_ROUNDS = 12;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key';
 const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || 'your-super-secret-refresh-key';
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY = '7d';
-export class AuthService {
+class AuthService {
     prisma;
     constructor(prisma) {
         this.prisma = prisma;
@@ -15,19 +21,19 @@ export class AuthService {
      * Hash password using bcrypt
      */
     async hashPassword(password) {
-        return bcrypt.hash(password, SALT_ROUNDS);
+        return bcrypt_1.default.hash(password, SALT_ROUNDS);
     }
     /**
      * Verify password against hash
      */
     async verifyPassword(password, hash) {
-        return bcrypt.compare(password, hash);
+        return bcrypt_1.default.compare(password, hash);
     }
     /**
      * Generate JWT access token
      */
     generateAccessToken(userId, permissions = []) {
-        return jwt.sign({
+        return jsonwebtoken_1.default.sign({
             userId,
             permissions,
             type: 'access'
@@ -37,10 +43,10 @@ export class AuthService {
      * Generate JWT refresh token
      */
     generateRefreshToken(userId) {
-        return jwt.sign({
+        return jsonwebtoken_1.default.sign({
             userId,
             type: 'refresh',
-            jti: randomBytes(16).toString('hex') // Unique token ID for revocation
+            jti: (0, crypto_1.randomBytes)(16).toString('hex') // Unique token ID for revocation
         }, JWT_REFRESH_SECRET, { expiresIn: REFRESH_TOKEN_EXPIRY });
     }
     /**
@@ -48,7 +54,7 @@ export class AuthService {
      */
     verifyToken(token, type = 'access') {
         const secret = type === 'access' ? JWT_SECRET : JWT_REFRESH_SECRET;
-        return jwt.verify(token, secret);
+        return jsonwebtoken_1.default.verify(token, secret);
     }
     /**
      * Get user with roles and permissions
@@ -292,7 +298,7 @@ export class AuthService {
         if (!user) {
             throw new Error('User not found');
         }
-        const token = randomBytes(32).toString('hex');
+        const token = (0, crypto_1.randomBytes)(32).toString('hex');
         const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
         await this.prisma.session.create({
             data: {
@@ -347,4 +353,5 @@ export class AuthService {
         return result.count;
     }
 }
+exports.AuthService = AuthService;
 //# sourceMappingURL=auth.js.map

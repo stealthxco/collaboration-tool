@@ -1,10 +1,15 @@
-import DatabaseService from '../services/database';
-import RedisService from '../services/redis';
-import WebSocketService from '../websocket/socket';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = __importDefault(require("../services/database"));
+// import RedisService from '../services/redis'; // MINIMAL BUILD: Disabled Redis
+// import WebSocketService from '../websocket/socket'; // MINIMAL BUILD: Disabled WebSocket
 async function missionRoutes(fastify, options) {
-    const db = DatabaseService.getInstance();
-    const redis = RedisService.getInstance();
-    const ws = WebSocketService.getInstance();
+    const db = database_1.default.getInstance();
+    // const redis = RedisService.getInstance(); // MINIMAL BUILD: Disabled Redis
+    // const ws = WebSocketService.getInstance(); // MINIMAL BUILD: Disabled WebSocket
     // GET /api/missions - List all missions with pagination
     fastify.get('/', async (request, reply) => {
         try {
@@ -12,10 +17,10 @@ async function missionRoutes(fastify, options) {
             const skip = (page - 1) * limit;
             // Build cache key
             const cacheKey = `missions:page:${page}:limit:${limit}:status:${status || 'all'}:agent:${agentId || 'all'}:priority:${priority || 'all'}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                return reply.send(cached);
-            }
+            // const cached = await redis.get<PaginatedResponse<MissionWithDetails>>(cacheKey); // MINIMAL BUILD: Cache disabled
+            // if (cached) {
+            //   return reply.send(cached);
+            // }
             // Build where clause
             const where = {};
             if (status)
@@ -54,7 +59,7 @@ async function missionRoutes(fastify, options) {
                 },
             };
             // Cache for 1 minute (missions change frequently)
-            await redis.set(cacheKey, response, 60);
+            // await redis.set // MINIMAL BUILD: Cache disabled(cacheKey, response, 60);
             return reply.send(response);
         }
         catch (error) {
@@ -71,10 +76,10 @@ async function missionRoutes(fastify, options) {
             const { id } = request.params;
             // Check cache first
             const cacheKey = `mission:${id}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                return reply.send({ success: true, data: cached });
-            }
+            // const cached = await redis.get<MissionWithDetails>(cacheKey); // MINIMAL BUILD: Cache disabled
+            // if (cached) {
+            //   return reply.send({ success: true, data: cached });
+            // }
             const mission = await db.prisma.mission.findUnique({
                 where: { id },
                 include: {
@@ -94,7 +99,7 @@ async function missionRoutes(fastify, options) {
                 });
             }
             // Cache for 2 minutes
-            await redis.set(cacheKey, mission, 120);
+            // await redis.set // MINIMAL BUILD: Cache disabled(cacheKey, mission, 120);
             return reply.send({ success: true, data: mission });
         }
         catch (error) {
@@ -135,14 +140,14 @@ async function missionRoutes(fastify, options) {
                 },
             });
             // Invalidate cache
-            await redis.del('missions:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled('missions:*');
             if (missionData.agentId) {
-                await redis.del(`agent:${missionData.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${missionData.agentId}`);
             }
             // Broadcast update
-            ws.broadcastSystemNotification('info', `New mission created: ${mission.title}`);
+            // ws.broadcast // MINIMAL BUILD: WebSocket disabledSystemNotification('info', `New mission created: ${mission.title}`);
             if (mission.agentId) {
-                ws.broadcastMissionUpdate(mission.id, mission.status, mission.progress);
+                // ws.broadcast // MINIMAL BUILD: WebSocket disabledMissionUpdate(mission.id, mission.status, mission.progress);
             }
             return reply.status(201).send({
                 success: true,
@@ -203,20 +208,20 @@ async function missionRoutes(fastify, options) {
                 },
             });
             // Invalidate cache
-            await redis.del(`mission:${id}`);
-            await redis.del('missions:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled(`mission:${id}`);
+            // await redis.del // MINIMAL BUILD: Cache disabled('missions:*');
             if (currentMission.agentId) {
-                await redis.del(`agent:${currentMission.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${currentMission.agentId}`);
             }
             if (updateData.agentId && updateData.agentId !== currentMission.agentId) {
-                await redis.del(`agent:${updateData.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${updateData.agentId}`);
             }
             // Broadcast updates
             if (updateData.status || updateData.progress !== undefined) {
-                ws.broadcastMissionUpdate(id, mission.status, mission.progress);
+                // ws.broadcast // MINIMAL BUILD: WebSocket disabledMissionUpdate(id, mission.status, mission.progress);
             }
             if (updateData.status === 'COMPLETED') {
-                ws.broadcastSystemNotification('success', `Mission completed: ${mission.title}`);
+                // ws.broadcast // MINIMAL BUILD: WebSocket disabledSystemNotification('success', `Mission completed: ${mission.title}`);
             }
             return reply.send({
                 success: true,
@@ -240,13 +245,13 @@ async function missionRoutes(fastify, options) {
                 where: { id },
             });
             // Invalidate cache
-            await redis.del(`mission:${id}`);
-            await redis.del('missions:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled(`mission:${id}`);
+            // await redis.del // MINIMAL BUILD: Cache disabled('missions:*');
             if (mission.agentId) {
-                await redis.del(`agent:${mission.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${mission.agentId}`);
             }
             // Broadcast update
-            ws.broadcastSystemNotification('warning', `Mission deleted: ${mission.title}`);
+            // ws.broadcast // MINIMAL BUILD: WebSocket disabledSystemNotification('warning', `Mission deleted: ${mission.title}`);
             return reply.send({
                 success: true,
                 message: 'Mission deleted successfully',
@@ -298,5 +303,5 @@ async function missionRoutes(fastify, options) {
         }
     });
 }
-export default missionRoutes;
+exports.default = missionRoutes;
 //# sourceMappingURL=missions.js.map

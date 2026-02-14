@@ -1,6 +1,16 @@
-import { AuthService } from '../services/auth.js';
-import { prisma } from '../services/database.js';
-const authService = new AuthService(prisma);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.authMiddleware = authMiddleware;
+exports.requirePermission = requirePermission;
+exports.requireRole = requireRole;
+exports.requireAdmin = requireAdmin;
+exports.optionalAuth = optionalAuth;
+exports.authRateLimit = authRateLimit;
+exports.csrfProtection = csrfProtection;
+exports.securityHeaders = securityHeaders;
+const auth_js_1 = require("../services/auth.js");
+const database_js_1 = require("../services/database.js");
+const authService = new auth_js_1.AuthService(database_js_1.prisma);
 /**
  * Extract bearer token from request headers
  */
@@ -14,7 +24,7 @@ function extractBearerToken(request) {
 /**
  * Authentication middleware - validates JWT token
  */
-export async function authMiddleware(request, reply) {
+async function authMiddleware(request, reply) {
     try {
         const token = extractBearerToken(request);
         if (!token) {
@@ -60,7 +70,7 @@ export async function authMiddleware(request, reply) {
 /**
  * Permission-based authorization middleware
  */
-export function requirePermission(resource, action) {
+function requirePermission(resource, action) {
     return async (request, reply) => {
         if (!request.user) {
             return reply.code(401).send({
@@ -80,7 +90,7 @@ export function requirePermission(resource, action) {
 /**
  * Role-based authorization middleware
  */
-export function requireRole(...roles) {
+function requireRole(...roles) {
     return async (request, reply) => {
         if (!request.user) {
             return reply.code(401).send({
@@ -100,13 +110,13 @@ export function requireRole(...roles) {
 /**
  * Admin authorization middleware
  */
-export async function requireAdmin(request, reply) {
+async function requireAdmin(request, reply) {
     await requireRole('admin')(request, reply);
 }
 /**
  * Optional authentication middleware - doesn't fail if no token
  */
-export async function optionalAuth(request, reply) {
+async function optionalAuth(request, reply) {
     try {
         const token = extractBearerToken(request);
         if (!token) {
@@ -135,7 +145,7 @@ export async function optionalAuth(request, reply) {
 /**
  * Rate limiting middleware for auth endpoints
  */
-export function authRateLimit(maxAttempts = 5, windowMs = 15 * 60 * 1000) {
+function authRateLimit(maxAttempts = 5, windowMs = 15 * 60 * 1000) {
     const attempts = new Map();
     return async (request, reply) => {
         const clientId = request.ip || 'unknown';
@@ -170,7 +180,7 @@ export function authRateLimit(maxAttempts = 5, windowMs = 15 * 60 * 1000) {
 /**
  * CSRF protection middleware (for cookie-based sessions)
  */
-export async function csrfProtection(request, reply) {
+async function csrfProtection(request, reply) {
     const csrfHeader = request.headers['x-csrf-token'];
     const csrfCookie = request.cookies?.['csrf-token'];
     if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
@@ -183,7 +193,7 @@ export async function csrfProtection(request, reply) {
 /**
  * Security headers middleware
  */
-export async function securityHeaders(request, reply) {
+async function securityHeaders(request, reply) {
     reply.headers({
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'DENY',

@@ -1,10 +1,15 @@
-import DatabaseService from '../services/database';
-import RedisService from '../services/redis';
-import WebSocketService from '../websocket/socket';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = __importDefault(require("../services/database"));
+// import RedisService from '../services/redis'; // MINIMAL BUILD: Disabled Redis
+// import WebSocketService from '../websocket/socket'; // MINIMAL BUILD: Disabled WebSocket
 async function commentRoutes(fastify, options) {
-    const db = DatabaseService.getInstance();
-    const redis = RedisService.getInstance();
-    const ws = WebSocketService.getInstance();
+    const db = database_1.default.getInstance();
+    // const redis = RedisService.getInstance(); // MINIMAL BUILD: Disabled Redis
+    // const ws = WebSocketService.getInstance(); // MINIMAL BUILD: Disabled WebSocket
     // GET /api/comments - List all comments with pagination
     fastify.get('/', async (request, reply) => {
         try {
@@ -12,10 +17,10 @@ async function commentRoutes(fastify, options) {
             const skip = (page - 1) * limit;
             // Build cache key
             const cacheKey = `comments:page:${page}:limit:${limit}:type:${type || 'all'}:agent:${agentId || 'all'}:mission:${missionId || 'all'}`;
-            const cached = await redis.get(cacheKey);
-            if (cached) {
-                return reply.send(cached);
-            }
+            // const cached = await redis.get<PaginatedResponse<CommentWithDetails>>(cacheKey); // MINIMAL BUILD: Cache disabled
+            // if (cached) {
+            //   return reply.send(cached);
+            // }
             // Build where clause
             const where = {};
             if (type)
@@ -54,7 +59,7 @@ async function commentRoutes(fastify, options) {
                 },
             };
             // Cache for 30 seconds (comments change frequently)
-            await redis.set(cacheKey, response, 30);
+            // await redis.set // MINIMAL BUILD: Cache disabled(cacheKey, response, 30);
             return reply.send(response);
         }
         catch (error) {
@@ -152,19 +157,22 @@ async function commentRoutes(fastify, options) {
                 },
             });
             // Invalidate cache
-            await redis.del('comments:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled('comments:*');
             if (commentData.agentId) {
-                await redis.del(`agent:${commentData.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${commentData.agentId}`);
             }
             if (commentData.missionId) {
-                await redis.del(`mission:${commentData.missionId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`mission:${commentData.missionId}`);
             }
             // Broadcast new comment
-            ws.broadcastNewComment(comment.id, commentData.agentId, commentData.missionId);
+            // ws.broadcast // MINIMAL BUILD: WebSocket disabledNewComment(comment.id, commentData.agentId, commentData.missionId);
             // Create system notification for important comment types
             if (comment.type === 'ERROR' || comment.type === 'WARNING') {
                 const entity = comment.agent?.name || comment.mission?.title || 'Unknown';
-                ws.broadcastSystemNotification(comment.type.toLowerCase(), `${comment.type}: ${entity} - ${comment.content.substring(0, 100)}`);
+                // ws.broadcastSystemNotification( // MINIMAL BUILD: WebSocket disabled
+                //   comment.type.toLowerCase(),
+                //   `${comment.type}: ${entity} - ${comment.content.substring(0, 100)}`
+                // );
             }
             return reply.status(201).send({
                 success: true,
@@ -200,12 +208,12 @@ async function commentRoutes(fastify, options) {
                 },
             });
             // Invalidate cache
-            await redis.del('comments:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled('comments:*');
             if (comment.agentId) {
-                await redis.del(`agent:${comment.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${comment.agentId}`);
             }
             if (comment.missionId) {
-                await redis.del(`mission:${comment.missionId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`mission:${comment.missionId}`);
             }
             return reply.send({
                 success: true,
@@ -235,12 +243,12 @@ async function commentRoutes(fastify, options) {
                 where: { id },
             });
             // Invalidate cache
-            await redis.del('comments:*');
+            // await redis.del // MINIMAL BUILD: Cache disabled('comments:*');
             if (comment.agentId) {
-                await redis.del(`agent:${comment.agentId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`agent:${comment.agentId}`);
             }
             if (comment.missionId) {
-                await redis.del(`mission:${comment.missionId}`);
+                // await redis.del // MINIMAL BUILD: Cache disabled(`mission:${comment.missionId}`);
             }
             return reply.send({
                 success: true,
@@ -262,5 +270,5 @@ async function commentRoutes(fastify, options) {
         }
     });
 }
-export default commentRoutes;
+exports.default = commentRoutes;
 //# sourceMappingURL=comments.js.map

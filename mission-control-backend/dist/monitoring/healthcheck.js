@@ -1,8 +1,14 @@
-import DatabaseService from '../services/database.js';
-import RedisService from '../services/redis.js';
-export async function healthCheckRoutes(fastify) {
-    const db = DatabaseService.getInstance();
-    const redis = RedisService.getInstance();
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.healthCheckRoutes = healthCheckRoutes;
+const database_js_1 = __importDefault(require("../services/database.js"));
+const redis_js_1 = __importDefault(require("../services/redis.js"));
+async function healthCheckRoutes(fastify) {
+    const db = database_js_1.default.getInstance();
+    const redis = redis_js_1.default.getInstance();
     // Detailed health check endpoint
     fastify.get('/health', async (request, reply) => {
         const startTime = Date.now();

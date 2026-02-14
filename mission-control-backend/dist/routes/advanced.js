@@ -1,5 +1,8 @@
-import { prisma } from '../services/database.js';
-export default async function advancedRoutes(fastify) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.default = advancedRoutes;
+const database_js_1 = require("../services/database.js");
+async function advancedRoutes(fastify) {
     // Simple search functionality using existing models
     fastify.get('/search', async (request, reply) => {
         const { query, type } = request.query;
@@ -10,7 +13,7 @@ export default async function advancedRoutes(fastify) {
             const results = {};
             // Search missions
             if (!type || type === 'missions') {
-                results.missions = await prisma.mission.findMany({
+                results.missions = await database_js_1.prisma.mission.findMany({
                     where: {
                         OR: [
                             { title: { contains: query, mode: 'insensitive' } },
@@ -26,7 +29,7 @@ export default async function advancedRoutes(fastify) {
             }
             // Search agents
             if (!type || type === 'agents') {
-                results.agents = await prisma.agent.findMany({
+                results.agents = await database_js_1.prisma.agent.findMany({
                     where: {
                         OR: [
                             { name: { contains: query, mode: 'insensitive' } },
@@ -38,7 +41,7 @@ export default async function advancedRoutes(fastify) {
             }
             // Search users
             if (!type || type === 'users') {
-                results.users = await prisma.user.findMany({
+                results.users = await database_js_1.prisma.user.findMany({
                     where: {
                         OR: [
                             { username: { contains: query, mode: 'insensitive' } },
@@ -75,24 +78,24 @@ export default async function advancedRoutes(fastify) {
         try {
             const stats = {
                 missions: {
-                    total: await prisma.mission.count(),
-                    pending: await prisma.mission.count({ where: { status: 'PENDING' } }),
-                    inProgress: await prisma.mission.count({ where: { status: 'IN_PROGRESS' } }),
-                    completed: await prisma.mission.count({ where: { status: 'COMPLETED' } }),
-                    failed: await prisma.mission.count({ where: { status: 'FAILED' } })
+                    total: await database_js_1.prisma.mission.count(),
+                    pending: await database_js_1.prisma.mission.count({ where: { status: 'PENDING' } }),
+                    inProgress: await database_js_1.prisma.mission.count({ where: { status: 'IN_PROGRESS' } }),
+                    completed: await database_js_1.prisma.mission.count({ where: { status: 'COMPLETED' } }),
+                    failed: await database_js_1.prisma.mission.count({ where: { status: 'FAILED' } })
                 },
                 agents: {
-                    total: await prisma.agent.count(),
-                    idle: await prisma.agent.count({ where: { status: 'IDLE' } }),
-                    busy: await prisma.agent.count({ where: { status: 'BUSY' } }),
-                    offline: await prisma.agent.count({ where: { status: 'OFFLINE' } }),
-                    error: await prisma.agent.count({ where: { status: 'ERROR' } })
+                    total: await database_js_1.prisma.agent.count(),
+                    idle: await database_js_1.prisma.agent.count({ where: { status: 'IDLE' } }),
+                    busy: await database_js_1.prisma.agent.count({ where: { status: 'BUSY' } }),
+                    offline: await database_js_1.prisma.agent.count({ where: { status: 'OFFLINE' } }),
+                    error: await database_js_1.prisma.agent.count({ where: { status: 'ERROR' } })
                 },
                 users: {
-                    total: await prisma.user.count(),
-                    active: await prisma.user.count({ where: { isActive: true } })
+                    total: await database_js_1.prisma.user.count(),
+                    active: await database_js_1.prisma.user.count({ where: { isActive: true } })
                 },
-                comments: await prisma.comment.count()
+                comments: await database_js_1.prisma.comment.count()
             };
             return reply.send(stats);
         }

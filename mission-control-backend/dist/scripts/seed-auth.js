@@ -1,10 +1,13 @@
 #!/usr/bin/env tsx
-import { PrismaClient } from '@prisma/client';
-import { RBACService } from '../services/rbac.js';
-import { AuthService } from '../services/auth.js';
-const prisma = new PrismaClient();
-const rbacService = new RBACService(prisma);
-const authService = new AuthService(prisma);
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.seedAuth = seedAuth;
+const client_1 = require("@prisma/client");
+const rbac_js_1 = require("../services/rbac.js");
+const auth_js_1 = require("../services/auth.js");
+const prisma = new client_1.PrismaClient();
+const rbacService = new rbac_js_1.RBACService(prisma);
+const authService = new auth_js_1.AuthService(prisma);
 async function seedAuth() {
     console.log('🌱 Seeding authentication system...');
     try {
@@ -126,5 +129,4 @@ async function main() {
 if (import.meta.url === `file://${process.argv[1]}`) {
     main();
 }
-export { seedAuth };
 //# sourceMappingURL=seed-auth.js.map

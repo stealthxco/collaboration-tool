@@ -1,12 +1,12 @@
 import fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
-import websocket from '@fastify/websocket';
+// import websocket from '@fastify/websocket'; // MINIMAL BUILD: Disabled WebSocket
 import dotenv from 'dotenv';
 
 // Import services
 import DatabaseService from './services/database';
-import RedisService from './services/redis';
-import WebSocketService from './websocket/socket';
+// import RedisService from './services/redis'; // MINIMAL BUILD: Disabled Redis
+// import WebSocketService from './websocket/socket'; // MINIMAL BUILD: Disabled WebSocket
 
 // Import routes
 import healthRoutes from './routes/health';
@@ -30,8 +30,8 @@ interface ServerOptions {
 class Server {
   private app: FastifyInstance;
   private db: DatabaseService;
-  private redis: RedisService;
-  private ws: WebSocketService;
+  // private redis: RedisService; // MINIMAL BUILD: Disabled Redis
+  // private ws: WebSocketService; // MINIMAL BUILD: Disabled WebSocket
 
   constructor(options: ServerOptions = {}) {
     this.app = fastify({
@@ -52,8 +52,8 @@ class Server {
 
     // Initialize services
     this.db = DatabaseService.getInstance();
-    this.redis = RedisService.getInstance();
-    this.ws = WebSocketService.getInstance();
+    // this.redis = RedisService.getInstance(); // MINIMAL BUILD: Disabled Redis
+    // this.ws = WebSocketService.getInstance(); // MINIMAL BUILD: Disabled WebSocket
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -71,7 +71,7 @@ class Server {
     });
 
     // WebSocket support
-    await this.app.register(websocket);
+    // await this.app.register(websocket); // MINIMAL BUILD: Disabled WebSocket
 
     // Security headers middleware
     this.app.addHook('onRequest', securityHeaders);
@@ -174,7 +174,7 @@ class Server {
         
         // Disconnect from services
         await this.db.disconnect();
-        await this.redis.disconnect();
+        // await this.redis.disconnect(); // MINIMAL BUILD: Disabled Redis
         
         this.app.log.info('Graceful shutdown completed');
         process.exit(0);
@@ -195,10 +195,10 @@ class Server {
     try {
       // Connect to services
       await this.db.connect();
-      await this.redis.connect();
+      // await this.redis.connect(); // MINIMAL BUILD: Disabled Redis
       
       // Initialize WebSocket
-      this.ws.initialize(this.app);
+      // this.ws.initialize(this.app); // MINIMAL BUILD: Disabled WebSocket
 
       // Start server
       await this.app.listen({ port: serverPort, host: serverHost });

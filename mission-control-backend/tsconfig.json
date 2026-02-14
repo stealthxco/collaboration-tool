@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
+    "module": "CommonJS",
     "moduleResolution": "node",
     "lib": ["ES2022"],
     "strict": true,
@@ -26,7 +26,10 @@
   ],
   "exclude": [
     "node_modules",
-    "dist"
+    "dist",
+    "src/websocket",
+    "src/**/*.disabled/**",
+    "src/**/*.disabled"
   ],
   "ts-node": {
     "esm": true

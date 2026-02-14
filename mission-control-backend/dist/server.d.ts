@@ -7,8 +7,6 @@ interface ServerOptions {
 declare class Server {
     private app;
     private db;
-    private redis;
-    private ws;
     constructor(options?: ServerOptions);
     private setupMiddleware;
     private setupRoutes;

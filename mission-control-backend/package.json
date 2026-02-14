@@ -1,7 +1,7 @@
 {
   "name": "mission-control-backend",
   "version": "1.0.0",
-  "description": "Mission Control Backend - Fastify API with PostgreSQL, Redis, and WebSockets",
+  "description": "Mission Control Backend - Minimal Fastify API with PostgreSQL (Railway Optimized)",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
@@ -20,22 +20,18 @@
     "api",
     "backend",
     "mission-control",
-    "express"
+    "fastify"
   ],
   "author": "Mission Control Team",
   "license": "MIT",
   "dependencies": {
     "@fastify/cors": "^8.4.2",
-    "@fastify/websocket": "^9.0.0",
     "@prisma/client": "^5.8.1",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.3.1",
     "fastify": "^4.25.2",
-    "fastify-multer": "^2.0.3",
-    "ioredis": "^5.3.2",
     "jsonwebtoken": "^9.0.2",
-    "prisma": "^5.8.1",
-    "socket.io": "^4.7.4"
+    "prisma": "^5.8.1"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

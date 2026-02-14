@@ -1,36 +1,38 @@
-import DatabaseService from '../services/database';
-import RedisService from '../services/redis';
-import WebSocketService from '../websocket/socket';
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const database_1 = __importDefault(require("../services/database"));
+// import RedisService from '../services/redis'; // MINIMAL BUILD: Disabled Redis
+// import WebSocketService from '../websocket/socket'; // MINIMAL BUILD: Disabled WebSocket
 async function healthRoutes(fastify, options) {
-    const db = DatabaseService.getInstance();
-    const redis = RedisService.getInstance();
-    const ws = WebSocketService.getInstance();
-    // GET /health - Basic health check
+    const db = database_1.default.getInstance();
+    // const redis = RedisService.getInstance(); // MINIMAL BUILD: Disabled Redis
+    // const ws = WebSocketService.getInstance(); // MINIMAL BUILD: Disabled WebSocket
+    // GET /health - Basic health check (MINIMAL BUILD: Database only)
     fastify.get('/health', async (request, reply) => {
         try {
-            const [dbHealth, redisHealth] = await Promise.all([
-                db.healthCheck(),
-                redis.healthCheck(),
-            ]);
+            const dbHealth = await db.healthCheck();
             const health = {
                 status: 'ok',
                 timestamp: new Date().toISOString(),
                 uptime: process.uptime(),
                 services: {
                     database: dbHealth ? 'healthy' : 'unhealthy',
-                    redis: redisHealth ? 'healthy' : 'unhealthy',
-                    websocket: ws.isHealthy() ? 'healthy' : 'unhealthy',
+                    // redis: redisHealth ? 'healthy' : 'unhealthy', // MINIMAL BUILD: Disabled
+                    // websocket: ws.isHealthy() ? 'healthy' : 'unhealthy', // MINIMAL BUILD: Disabled
                 },
-                connections: {
-                    websocket: ws.getConnectedClients(),
-                },
+                // connections: {
+                //   websocket: ws.getConnectedClients(), // MINIMAL BUILD: Disabled
+                // },
                 memory: {
                     used: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
                     total: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
                 },
                 environment: process.env.NODE_ENV || 'development',
             };
-            const allHealthy = dbHealth && redisHealth && ws.isHealthy();
+            const allHealthy = dbHealth; // && redisHealth && ws.isHealthy(); // MINIMAL BUILD: DB only
             const statusCode = allHealthy ? 200 : 503;
             return reply.status(statusCode).send({
                 success: allHealthy,
@@ -46,13 +48,10 @@ async function healthRoutes(fastify, options) {
             });
         }
     });
-    // GET /health/detailed - Detailed system information
+    // GET /health/detailed - Detailed system information (MINIMAL BUILD: Database only)
     fastify.get('/health/detailed', async (request, reply) => {
         try {
-            const [dbHealth, redisHealth] = await Promise.all([
-                db.healthCheck(),
-                redis.healthCheck(),
-            ]);
+            const dbHealth = await db.healthCheck();
             // Get database statistics
             let dbStats = null;
             try {
@@ -80,13 +79,13 @@ async function healthRoutes(fastify, options) {
                 pid: process.pid,
                 services: {
                     database: dbHealth ? 'healthy' : 'unhealthy',
-                    redis: redisHealth ? 'healthy' : 'unhealthy',
-                    websocket: ws.isHealthy() ? 'healthy' : 'unhealthy',
+                    // redis: redisHealth ? 'healthy' : 'unhealthy', // MINIMAL BUILD: Disabled
+                    // websocket: ws.isHealthy() ? 'healthy' : 'unhealthy', // MINIMAL BUILD: Disabled
                 },
                 statistics: dbStats,
-                connections: {
-                    websocket: ws.getConnectedClients(),
-                },
+                // connections: {
+                //   websocket: ws.getConnectedClients(), // MINIMAL BUILD: Disabled
+                // },
                 memory: {
                     rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
                     heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB',
@@ -98,11 +97,11 @@ async function healthRoutes(fastify, options) {
                     port: process.env.PORT || '3000',
                     host: process.env.HOST || 'localhost',
                     databaseUrl: process.env.DATABASE_URL ? '[CONFIGURED]' : '[NOT CONFIGURED]',
-                    redisUrl: process.env.REDIS_URL ? '[CONFIGURED]' : '[NOT CONFIGURED]',
+                    // redisUrl: process.env.REDIS_URL ? '[CONFIGURED]' : '[NOT CONFIGURED]', // MINIMAL BUILD: Disabled
                     jwtSecret: process.env.JWT_SECRET ? '[CONFIGURED]' : '[NOT CONFIGURED]',
                 },
             };
-            const allHealthy = dbHealth && redisHealth && ws.isHealthy();
+            const allHealthy = dbHealth; // && redisHealth && ws.isHealthy(); // MINIMAL BUILD: DB only
             const statusCode = allHealthy ? 200 : 503;
             return reply.status(statusCode).send({
                 success: allHealthy,
@@ -139,5 +138,5 @@ async function healthRoutes(fastify, options) {
         return reply.send({ status: 'alive', timestamp: new Date().toISOString() });
     });
 }
-export default healthRoutes;
+exports.default = healthRoutes;
 //# sourceMappingURL=health.js.map

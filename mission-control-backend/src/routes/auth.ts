@@ -2,7 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { AuthService, RegisterData, LoginData } from '../services/auth.js';
 import { prisma } from '../services/database.js';
 import { authMiddleware, authRateLimit, AuthRequest } from '../middleware/auth.js';
-import oauthRoutes from './oauth.js';
+// import oauthRoutes from './oauth.js'; // MINIMAL BUILD: Disabled OAuth
 
 const authService = new AuthService(prisma);
 
@@ -601,5 +601,5 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // Register OAuth routes
-  await fastify.register(oauthRoutes, { prefix: '/oauth' });
+  // await fastify.register(oauthRoutes, { prefix: '/oauth' }); // MINIMAL BUILD: Disabled OAuth
 }

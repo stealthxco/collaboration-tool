@@ -1,9 +1,12 @@
-import { PrismaClient } from '@prisma/client';
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.prisma = void 0;
+const client_1 = require("@prisma/client");
 class DatabaseService {
     static instance;
     prisma;
     constructor() {
-        this.prisma = new PrismaClient({
+        this.prisma = new client_1.PrismaClient({
             log: process.env.NODE_ENV === 'development' ? ['query', 'info', 'warn', 'error'] : ['error'],
         });
     }
@@ -40,6 +43,6 @@ class DatabaseService {
 }
 // Export the singleton instance for easy access
 const databaseService = DatabaseService.getInstance();
-export const prisma = databaseService.prisma;
-export default DatabaseService;
+exports.prisma = databaseService.prisma;
+exports.default = DatabaseService;
 //# sourceMappingURL=database.js.map
