@@ -1,23 +1,11 @@
-import Redis from 'ioredis';
+// Redis service disabled for minimal build
+// This is a stub implementation that provides the same interface without Redis dependency
 
 class RedisService {
   private static instance: RedisService;
-  public client: Redis;
 
   private constructor() {
-    this.client = new Redis(process.env.REDIS_URL || 'redis://localhost:6379', {
-      enableReadyCheck: false,
-      maxRetriesPerRequest: null,
-      lazyConnect: true,
-    });
-
-    this.client.on('connect', () => {
-      console.log('✅ Redis connected successfully');
-    });
-
-    this.client.on('error', (error) => {
-      console.error('❌ Redis connection error:', error);
-    });
+    console.log('⚠️ Redis service disabled (minimal build)');
   }
 
   static getInstance(): RedisService {
@@ -28,68 +16,40 @@ class RedisService {
   }
 
   async connect(): Promise<void> {
-    try {
-      await this.client.connect();
-    } catch (error) {
-      console.error('❌ Redis connection failed:', error);
-      // Don't exit process for Redis - continue without cache
-    }
+    // No-op for minimal build
+    console.log('ℹ️ Redis connection skipped (minimal build)');
   }
 
   async disconnect(): Promise<void> {
-    await this.client.quit();
-    console.log('🔌 Redis disconnected');
+    // No-op for minimal build
+    console.log('ℹ️ Redis disconnection skipped (minimal build)');
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
-    try {
-      const serializedValue = JSON.stringify(value);
-      if (ttl) {
-        await this.client.setex(key, ttl, serializedValue);
-      } else {
-        await this.client.set(key, serializedValue);
-      }
-    } catch (error) {
-      console.error('Redis set error:', error);
-    }
+    // No-op for minimal build - data not cached
+    console.log(`ℹ️ Redis set skipped for key: ${key} (minimal build)`);
   }
 
   async get<T = any>(key: string): Promise<T | null> {
-    try {
-      const value = await this.client.get(key);
-      return value ? JSON.parse(value) : null;
-    } catch (error) {
-      console.error('Redis get error:', error);
-      return null;
-    }
+    // Always return null for minimal build - no caching
+    console.log(`ℹ️ Redis get skipped for key: ${key} (minimal build)`);
+    return null;
   }
 
   async del(key: string): Promise<void> {
-    try {
-      await this.client.del(key);
-    } catch (error) {
-      console.error('Redis delete error:', error);
-    }
+    // No-op for minimal build
+    console.log(`ℹ️ Redis delete skipped for key: ${key} (minimal build)`);
   }
 
   async exists(key: string): Promise<boolean> {
-    try {
-      const result = await this.client.exists(key);
-      return result === 1;
-    } catch (error) {
-      console.error('Redis exists error:', error);
-      return false;
-    }
+    // Always return false for minimal build
+    console.log(`ℹ️ Redis exists check skipped for key: ${key} (minimal build)`);
+    return false;
   }
 
   async healthCheck(): Promise<boolean> {
-    try {
-      const pong = await this.client.ping();
-      return pong === 'PONG';
-    } catch (error) {
-      console.error('Redis health check failed:', error);
-      return false;
-    }
+    // Always return true for minimal build (no Redis to check)
+    return true;
   }
 }
 
