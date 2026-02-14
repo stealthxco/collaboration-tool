@@ -5,7 +5,7 @@
       "name": "backend",
       "source": {
         "type": "git",
-        "repo": "mrmayordancebot/collaboration-tool",
+        "repo": "stealthxco/collaboration-tool",
         "branch": "main"
       },
       "build": {
@@ -23,7 +23,7 @@
       "name": "frontend", 
       "source": {
         "type": "git",
-        "repo": "mrmayordancebot/collaboration-tool",
+        "repo": "stealthxco/collaboration-tool",
         "branch": "main"
       },
       "build": {
