@@ -1,38 +1,27 @@
-# Multi-stage build for Mission Control Full Stack App
+# Multi-stage build for Mission Control Full Stack App using Workspaces
 
-# Stage 1: Build the backend
-FROM node:18-alpine AS backend-builder
+# Stage 1: Build everything using workspace
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy backend files
-COPY mission-control-backend/package*.json ./backend/
-WORKDIR /app/backend
-RUN npm ci --only=production
+# Copy workspace configuration files
+COPY package.json package-lock.json ./
 
-# Copy backend source
-COPY mission-control-backend/ ./
+# Copy workspace subdirectories  
+COPY mission-control-backend/ ./mission-control-backend/
+COPY mission-control-frontend/ ./mission-control-frontend/
+
+# Install all dependencies via workspace
+RUN npm ci --workspaces
 
 # Build backend
-RUN npm run build
+RUN npm run build:backend
 
-# Stage 2: Build the frontend
-FROM node:18-alpine AS frontend-builder
+# Build frontend  
+RUN npm run build:frontend
 
-WORKDIR /app
-
-# Copy frontend files
-COPY mission-control-frontend/package*.json ./frontend/
-WORKDIR /app/frontend
-RUN npm ci
-
-# Copy frontend source
-COPY mission-control-frontend/ ./
-
-# Build frontend for production
-RUN npm run build
-
-# Stage 3: Production image
+# Stage 2: Production image
 FROM node:18-alpine AS production
 
 WORKDIR /app
@@ -44,14 +33,17 @@ RUN apk add --no-cache dumb-init
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
-# Copy backend built files and node_modules
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/dist ./backend/dist
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/node_modules ./backend/node_modules
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/package.json ./backend/
-COPY --from=backend-builder --chown=nodejs:nodejs /app/backend/prisma ./backend/prisma
+# Copy workspace config
+COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
+
+# Copy backend built files and dependencies
+COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/dist ./mission-control-backend/dist
+COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/node_modules ./mission-control-backend/node_modules
+COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/package.json ./mission-control-backend/
+COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/prisma ./mission-control-backend/prisma
 
 # Copy frontend built files
-COPY --from=frontend-builder --chown=nodejs:nodejs /app/frontend/dist ./frontend/dist
+COPY --from=builder --chown=nodejs:nodejs /app/mission-control-frontend/dist ./mission-control-frontend/dist
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -67,6 +59,6 @@ EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "http.get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the application
+# Start the backend application
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "backend/dist/index.js"]
+CMD ["node", "mission-control-backend/dist/index.js"]
