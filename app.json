@@ -1,0 +1,26 @@
+{
+  "name": "Mission Control",
+  "description": "AI-powered collaboration tool dashboard for managing agents and projects",
+  "repository": "https://github.com/mrmayordancebot/collaboration-tool",
+  "logo": "https://raw.githubusercontent.com/mrmayordancebot/collaboration-tool/main/public/logo.png",
+  "keywords": ["collaboration", "project-management", "ai-agents", "kanban", "real-time"],
+  "addons": [
+    {
+      "plan": "postgresql:starter"
+    },
+    {
+      "plan": "redis:starter"
+    }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "value": "production"
+    },
+    "FRONTEND_URL": {
+      "generator": "url"
+    },
+    "BACKEND_URL": {
+      "generator": "url"
+    }
+  }
+}

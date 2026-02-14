@@ -1,0 +1,50 @@
+{
+  "name": "mission-control",
+  "services": [
+    {
+      "name": "backend",
+      "source": {
+        "type": "git",
+        "repo": "mrmayordancebot/collaboration-tool",
+        "branch": "main"
+      },
+      "build": {
+        "command": "cd mission-control-backend && npm install && npm run build"
+      },
+      "start": {
+        "command": "cd mission-control-backend && npm start"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "$PORT"
+      }
+    },
+    {
+      "name": "frontend", 
+      "source": {
+        "type": "git",
+        "repo": "mrmayordancebot/collaboration-tool",
+        "branch": "main"
+      },
+      "build": {
+        "command": "cd mission-control-frontend && npm install && npm run build"
+      },
+      "start": {
+        "command": "cd mission-control-frontend && npm start"
+      },
+      "env": {
+        "NODE_ENV": "production",
+        "PORT": "$PORT",
+        "REACT_APP_API_URL": "$BACKEND_URL"
+      }
+    }
+  ],
+  "addons": [
+    {
+      "type": "postgresql"
+    },
+    {
+      "type": "redis"
+    }
+  ]
+}
