@@ -1,53 +1,48 @@
-# Backend-only Dockerfile for Mission Control API
+# Simplified Backend-only Dockerfile for Mission Control
 
-FROM node:18-alpine AS builder
-
-WORKDIR /app
-
-# Copy workspace configuration files
-COPY package.json package-lock.json ./
-
-# Copy backend only
-COPY mission-control-backend/ ./mission-control-backend/
-
-# Install dependencies for backend workspace
-RUN npm ci --workspace=mission-control-backend
-
-# Build backend only
-RUN npm run build:backend
-
-# Production image
 FROM node:18-alpine AS production
 
 WORKDIR /app
 
-# Install dumb-init for proper signal handling
+# Install dumb-init
 RUN apk add --no-cache dumb-init
 
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+# Copy workspace root files for dependency resolution
+COPY package.json package-lock.json ./
 
-# Copy backend built files and dependencies
-COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/dist ./mission-control-backend/dist
-COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/node_modules ./mission-control-backend/node_modules
-COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/package.json ./mission-control-backend/
-COPY --from=builder --chown=nodejs:nodejs /app/mission-control-backend/prisma ./mission-control-backend/prisma
+# Copy backend source and package files
+COPY mission-control-backend/ ./mission-control-backend/
+
+# Install ALL dependencies (including workspace deps)
+RUN npm install
+
+# Install backend-specific dependencies
+WORKDIR /app/mission-control-backend
+RUN npm install
+
+# Build backend
+RUN npm run build
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && adduser -S nodejs -u 1001
+
+# Change ownership
+RUN chown -R nodejs:nodejs /app
+
+# Switch to non-root user
+USER nodejs
 
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=3001
 
-# Switch to non-root user
-USER nodejs
-
-# Expose the backend port
+# Expose port
 EXPOSE 3001
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "http.get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
+  CMD node -e "http.get('http://localhost:3001/ping', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
 
-# Start the backend application
+# Start application
 ENTRYPOINT ["dumb-init", "--"]
-CMD ["node", "mission-control-backend/dist/index.js"]
+CMD ["node", "dist/index.js"]
