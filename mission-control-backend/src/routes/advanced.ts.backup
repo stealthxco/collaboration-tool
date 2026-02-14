@@ -1,0 +1,47 @@
+// Advanced features temporarily disabled for initial deployment
+// This file contains references to database models that are not yet implemented
+// TODO: Implement missing models: missionTemplate, tag, file, bulkOperation, workflowRule
+
+import { FastifyInstance } from 'fastify';
+
+export default async function advancedRoutes(fastify: FastifyInstance) {
+  // Mission Templates - TODO: Implement when missionTemplate model is added
+  fastify.get('/mission-templates', async (request, reply) => {
+    return reply.code(501).send({ 
+      message: 'Mission templates feature not implemented yet',
+      feature: 'advanced-templates' 
+    });
+  });
+
+  // Tags - TODO: Implement when tag model is added
+  fastify.get('/tags', async (request, reply) => {
+    return reply.code(501).send({ 
+      message: 'Tags feature not implemented yet',
+      feature: 'tags' 
+    });
+  });
+
+  // File Management - TODO: Implement when file model is added
+  fastify.get('/files', async (request, reply) => {
+    return reply.code(501).send({ 
+      message: 'File management feature not implemented yet',
+      feature: 'file-management' 
+    });
+  });
+
+  // Bulk Operations - TODO: Implement when bulkOperation model is added
+  fastify.post('/bulk-operations', async (request, reply) => {
+    return reply.code(501).send({ 
+      message: 'Bulk operations feature not implemented yet',
+      feature: 'bulk-operations' 
+    });
+  });
+
+  // Workflow Rules - TODO: Implement when workflowRule model is added
+  fastify.get('/workflow-rules', async (request, reply) => {
+    return reply.code(501).send({ 
+      message: 'Workflow rules feature not implemented yet',
+      feature: 'workflow-rules' 
+    });
+  });
+}

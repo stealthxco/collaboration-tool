@@ -1,0 +1,322 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles */
+:root {
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Dark mode scrollbar */
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* Animation utilities */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: .5;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(-25%);
+    animation-timing-function: cubic-bezier(0.8,0,1,1);
+  }
+  50% {
+    transform: none;
+    animation-timing-function: cubic-bezier(0,0,0.2,1);
+  }
+}
+
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* Toast animations */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+.toast-enter {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast-exit {
+  animation: slideOutRight 0.3s ease-in;
+}
+
+/* Connection status indicator */
+.connection-indicator {
+  position: relative;
+  display: inline-block;
+}
+
+.connection-indicator::after {
+  content: '';
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.connection-indicator.connected::after {
+  background-color: var(--color-success);
+  animation: ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+.connection-indicator.disconnected::after {
+  background-color: var(--color-error);
+}
+
+.connection-indicator.connecting::after {
+  background-color: var(--color-warning);
+  animation: pulse 1s ease-in-out infinite;
+}
+
+/* Real-time update indicator */
+.realtime-indicator {
+  position: relative;
+}
+
+.realtime-indicator::before {
+  content: '●';
+  color: var(--color-success);
+  margin-right: 0.5rem;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Loading skeleton */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, transparent 37%, #f0f0f0 63%);
+  background-size: 400% 100%;
+  animation: skeleton-loading 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Dark mode skeleton */
+.dark .skeleton {
+  background: linear-gradient(90deg, #374151 25%, transparent 37%, #374151 63%);
+  background-size: 400% 100%;
+}
+
+/* Status badges */
+.status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-badge.success {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge.warning {
+  @apply bg-yellow-100 text-yellow-800;
+}
+
+.status-badge.error {
+  @apply bg-red-100 text-red-800;
+}
+
+.status-badge.info {
+  @apply bg-blue-100 text-blue-800;
+}
+
+.status-badge.neutral {
+  @apply bg-gray-100 text-gray-800;
+}
+
+/* Dark mode status badges */
+.dark .status-badge.success {
+  @apply bg-green-900 text-green-300;
+}
+
+.dark .status-badge.warning {
+  @apply bg-yellow-900 text-yellow-300;
+}
+
+.dark .status-badge.error {
+  @apply bg-red-900 text-red-300;
+}
+
+.dark .status-badge.info {
+  @apply bg-blue-900 text-blue-300;
+}
+
+.dark .status-badge.neutral {
+  @apply bg-gray-700 text-gray-300;
+}
+
+/* Progress bar */
+.progress-bar {
+  @apply w-full bg-gray-200 rounded-full h-2.5;
+}
+
+.progress-bar-fill {
+  @apply bg-blue-600 h-2.5 rounded-full transition-all duration-300 ease-in-out;
+}
+
+.dark .progress-bar {
+  @apply bg-gray-700;
+}
+
+.dark .progress-bar-fill {
+  @apply bg-blue-400;
+}
+
+/* Card hover effects */
+.card-hover {
+  @apply transition-all duration-200 ease-in-out;
+}
+
+.card-hover:hover {
+  @apply transform -translate-y-1 shadow-lg;
+}
+
+/* Focus styles */
+.focus-ring {
+  @apply focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2;
+}
+
+.dark .focus-ring {
+  @apply focus:ring-offset-gray-800;
+}
+
+/* Custom button styles */
+.btn {
+  @apply inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus-ring transition-colors duration-200;
+}
+
+.btn-primary {
+  @apply bg-blue-600 text-white hover:bg-blue-700;
+}
+
+.btn-secondary {
+  @apply bg-white text-gray-700 border-gray-300 hover:bg-gray-50;
+}
+
+.btn-success {
+  @apply bg-green-600 text-white hover:bg-green-700;
+}
+
+.btn-warning {
+  @apply bg-yellow-500 text-white hover:bg-yellow-600;
+}
+
+.btn-error {
+  @apply bg-red-600 text-white hover:bg-red-700;
+}
+
+/* Dark mode buttons */
+.dark .btn-secondary {
+  @apply bg-gray-700 text-gray-300 border-gray-600 hover:bg-gray-600;
+}
+
+/* Utility classes */
+.text-truncate {
+  @apply truncate;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .status-badge {
+    @apply border-2 border-current;
+  }
+  
+  .progress-bar-fill {
+    @apply border border-current;
+  }
+}

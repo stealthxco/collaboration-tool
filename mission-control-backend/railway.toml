@@ -1,0 +1,21 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci --include=dev && npx prisma generate && npm run build"
+
+[deploy]
+startCommand = "npx prisma migrate deploy && npm start"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[env]
+PORT = "3001"
+NODE_ENV = "production"
+
+[nixpacks]
+aptPkgs = ["ca-certificates", "openssl"]
+
+[build.env]
+NPM_CONFIG_PRODUCTION = "false"
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"

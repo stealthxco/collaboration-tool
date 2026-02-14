@@ -1,0 +1,21 @@
+[variables]
+NPM_CONFIG_PRODUCTION = "false"
+
+[phases.setup]
+nixPkgs = ["nodejs-18_x", "openssl", "ca-certificates"]
+aptPkgs = ["ca-certificates", "openssl"]
+
+[phases.install]
+cmds = ["npm ci --include=dev"]
+
+[phases.build]
+cmds = [
+  "npx prisma generate",
+  "npm run build"
+]
+
+[start]
+cmd = "sh -c 'npx prisma migrate deploy && npm start'"
+
+[variables.build]
+DATABASE_URL = "${{Postgres.DATABASE_URL}}"

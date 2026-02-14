@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  # Override API service for development
+  api:
+    build:
+      context: .
+      target: development
+    environment:
+      NODE_ENV: development
+      JWT_SECRET: development-secret-key
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./logs:/app/logs
+    command: npm run dev
+    
+  # Add development tools
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: mission-control-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@missioncontrol.local
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+
+  # Redis Commander for Redis management
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: mission-control-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379:0:redis_pass
+      HTTP_USER: admin
+      HTTP_PASSWORD: admin123
+    ports:
+      - "8081:8081"
+    depends_on:
+      - redis
+
+volumes:
+  pgadmin_data:
+    driver: local

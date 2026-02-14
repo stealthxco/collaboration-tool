@@ -1,0 +1,507 @@
+import { PrismaClient, User, OAuthAccount } from '@prisma/client';
+import { AuthService } from './auth.js';
+import { randomBytes } from 'crypto';
+
+export interface OAuthProvider {
+  name: string;
+  clientId: string;
+  clientSecret: string;
+  redirectUri: string;
+  scope: string[];
+  authUrl: string;
+  tokenUrl: string;
+  userInfoUrl: string;
+}
+
+export interface OAuthUserInfo {
+  id: string;
+  email?: string;
+  username?: string;
+  firstName?: string;
+  lastName?: string;
+  avatar?: string;
+  raw?: any; // Raw response from provider
+}
+
+export interface OAuthTokens {
+  accessToken: string;
+  refreshToken?: string;
+  expiresAt?: Date;
+}
+
+export class OAuthService {
+  private prisma: PrismaClient;
+  private authService: AuthService;
+  private providers: Map<string, OAuthProvider> = new Map();
+
+  constructor(prisma: PrismaClient, authService: AuthService) {
+    this.prisma = prisma;
+    this.authService = authService;
+    this.initializeProviders();
+  }
+
+  /**
+   * Initialize OAuth providers from environment variables
+   */
+  private initializeProviders(): void {
+    // Google OAuth
+    if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+      this.providers.set('google', {
+        name: 'google',
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        redirectUri: process.env.GOOGLE_REDIRECT_URI || '/auth/oauth/google/callback',
+        scope: ['openid', 'email', 'profile'],
+        authUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
+        tokenUrl: 'https://oauth2.googleapis.com/token',
+        userInfoUrl: 'https://www.googleapis.com/oauth2/v2/userinfo'
+      });
+    }
+
+    // GitHub OAuth
+    if (process.env.GITHUB_CLIENT_ID && process.env.GITHUB_CLIENT_SECRET) {
+      this.providers.set('github', {
+        name: 'github',
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        redirectUri: process.env.GITHUB_REDIRECT_URI || '/auth/oauth/github/callback',
+        scope: ['user:email'],
+        authUrl: 'https://github.com/login/oauth/authorize',
+        tokenUrl: 'https://github.com/login/oauth/access_token',
+        userInfoUrl: 'https://api.github.com/user'
+      });
+    }
+
+    // Discord OAuth
+    if (process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET) {
+      this.providers.set('discord', {
+        name: 'discord',
+        clientId: process.env.DISCORD_CLIENT_ID,
+        clientSecret: process.env.DISCORD_CLIENT_SECRET,
+        redirectUri: process.env.DISCORD_REDIRECT_URI || '/auth/oauth/discord/callback',
+        scope: ['identify', 'email'],
+        authUrl: 'https://discord.com/api/oauth2/authorize',
+        tokenUrl: 'https://discord.com/api/oauth2/token',
+        userInfoUrl: 'https://discord.com/api/users/@me'
+      });
+    }
+  }
+
+  /**
+   * Get OAuth provider configuration
+   */
+  getProvider(providerName: string): OAuthProvider | null {
+    return this.providers.get(providerName) || null;
+  }
+
+  /**
+   * Get list of configured providers
+   */
+  getConfiguredProviders(): string[] {
+    return Array.from(this.providers.keys());
+  }
+
+  /**
+   * Generate OAuth authorization URL
+   */
+  generateAuthUrl(providerName: string, state?: string): string {
+    const provider = this.getProvider(providerName);
+    if (!provider) {
+      throw new Error(`OAuth provider '${providerName}' not configured`);
+    }
+
+    const params = new URLSearchParams({
+      client_id: provider.clientId,
+      redirect_uri: provider.redirectUri,
+      response_type: 'code',
+      scope: provider.scope.join(' '),
+      state: state || randomBytes(16).toString('hex')
+    });
+
+    return `${provider.authUrl}?${params.toString()}`;
+  }
+
+  /**
+   * Exchange authorization code for access token
+   */
+  async exchangeCodeForToken(providerName: string, code: string): Promise<OAuthTokens> {
+    const provider = this.getProvider(providerName);
+    if (!provider) {
+      throw new Error(`OAuth provider '${providerName}' not configured`);
+    }
+
+    const response = await fetch(provider.tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        grant_type: 'authorization_code',
+        client_id: provider.clientId,
+        client_secret: provider.clientSecret,
+        code,
+        redirect_uri: provider.redirectUri
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to exchange code for token: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    return {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : undefined
+    };
+  }
+
+  /**
+   * Get user information from OAuth provider
+   */
+  async getUserInfo(providerName: string, accessToken: string): Promise<OAuthUserInfo> {
+    const provider = this.getProvider(providerName);
+    if (!provider) {
+      throw new Error(`OAuth provider '${providerName}' not configured`);
+    }
+
+    const response = await fetch(provider.userInfoUrl, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'Accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to get user info: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    
+    // Normalize user data based on provider
+    return this.normalizeUserInfo(providerName, data);
+  }
+
+  /**
+   * Normalize user information from different providers
+   */
+  private normalizeUserInfo(providerName: string, rawData: any): OAuthUserInfo {
+    switch (providerName) {
+      case 'google':
+        return {
+          id: rawData.id,
+          email: rawData.email,
+          username: rawData.email?.split('@')[0],
+          firstName: rawData.given_name,
+          lastName: rawData.family_name,
+          avatar: rawData.picture,
+          raw: rawData
+        };
+
+      case 'github':
+        return {
+          id: rawData.id.toString(),
+          email: rawData.email,
+          username: rawData.login,
+          firstName: rawData.name?.split(' ')[0],
+          lastName: rawData.name?.split(' ').slice(1).join(' '),
+          avatar: rawData.avatar_url,
+          raw: rawData
+        };
+
+      case 'discord':
+        return {
+          id: rawData.id,
+          email: rawData.email,
+          username: rawData.username,
+          firstName: rawData.global_name?.split(' ')[0],
+          lastName: rawData.global_name?.split(' ').slice(1).join(' '),
+          avatar: rawData.avatar ? `https://cdn.discordapp.com/avatars/${rawData.id}/${rawData.avatar}.png` : undefined,
+          raw: rawData
+        };
+
+      default:
+        return {
+          id: rawData.id?.toString() || rawData.sub,
+          email: rawData.email,
+          username: rawData.username || rawData.login || rawData.preferred_username,
+          firstName: rawData.first_name || rawData.given_name,
+          lastName: rawData.last_name || rawData.family_name,
+          avatar: rawData.avatar || rawData.picture || rawData.avatar_url,
+          raw: rawData
+        };
+    }
+  }
+
+  /**
+   * Handle OAuth login/registration
+   */
+  async handleOAuthCallback(
+    providerName: string,
+    code: string
+  ): Promise<{ user: User; tokens: any; isNewUser: boolean }> {
+    try {
+      // Exchange code for access token
+      const oauthTokens = await this.exchangeCodeForToken(providerName, code);
+      
+      // Get user info from provider
+      const userInfo = await this.getUserInfo(providerName, oauthTokens.accessToken);
+
+      // Check if OAuth account already exists
+      let oauthAccount = await this.prisma.oAuthAccount.findUnique({
+        where: {
+          provider_providerId: {
+            provider: providerName,
+            providerId: userInfo.id
+          }
+        },
+        include: { user: true }
+      });
+
+      let user: User;
+      let isNewUser = false;
+
+      if (oauthAccount) {
+        // Existing OAuth account - update tokens
+        user = oauthAccount.user;
+        
+        await this.prisma.oAuthAccount.update({
+          where: { id: oauthAccount.id },
+          data: {
+            accessToken: oauthTokens.accessToken,
+            refreshToken: oauthTokens.refreshToken,
+            expiresAt: oauthTokens.expiresAt,
+            providerData: userInfo.raw,
+            updatedAt: new Date()
+          }
+        });
+      } else {
+        // Check if user exists by email
+        let existingUser = null;
+        if (userInfo.email) {
+          existingUser = await this.prisma.user.findUnique({
+            where: { email: userInfo.email }
+          });
+        }
+
+        if (existingUser) {
+          // Link OAuth account to existing user
+          user = existingUser;
+          
+          await this.prisma.oAuthAccount.create({
+            data: {
+              userId: user.id,
+              provider: providerName,
+              providerId: userInfo.id,
+              accessToken: oauthTokens.accessToken,
+              refreshToken: oauthTokens.refreshToken,
+              expiresAt: oauthTokens.expiresAt,
+              providerData: userInfo.raw
+            }
+          });
+        } else {
+          // Create new user
+          isNewUser = true;
+          
+          const username = await this.generateUniqueUsername(
+            userInfo.username || userInfo.email?.split('@')[0] || `${providerName}_user`
+          );
+
+          user = await this.prisma.user.create({
+            data: {
+              username,
+              email: userInfo.email,
+              firstName: userInfo.firstName,
+              lastName: userInfo.lastName,
+              avatar: userInfo.avatar,
+              emailVerified: !!userInfo.email, // Assume email is verified if from OAuth
+              isActive: true
+            }
+          });
+
+          // Create OAuth account record
+          await this.prisma.oAuthAccount.create({
+            data: {
+              userId: user.id,
+              provider: providerName,
+              providerId: userInfo.id,
+              accessToken: oauthTokens.accessToken,
+              refreshToken: oauthTokens.refreshToken,
+              expiresAt: oauthTokens.expiresAt,
+              providerData: userInfo.raw
+            }
+          });
+
+          // Assign default role if new user
+          const defaultRole = await this.prisma.role.findFirst({
+            where: { isDefault: true }
+          });
+
+          if (defaultRole) {
+            await this.prisma.userRole.create({
+              data: {
+                userId: user.id,
+                roleId: defaultRole.id
+              }
+            });
+          }
+        }
+      }
+
+      // Update last login
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() }
+      });
+
+      // Generate JWT tokens
+      const userWithPermissions = await this.authService.getUserWithPermissions(user.id);
+      const permissions = userWithPermissions ? this.authService.extractPermissions(userWithPermissions) : [];
+      const tokens = await this.authService.generateTokenPair(user.id, permissions);
+
+      return { user, tokens, isNewUser };
+    } catch (error) {
+      throw new Error(`OAuth callback failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Generate unique username
+   */
+  private async generateUniqueUsername(baseUsername: string): Promise<string> {
+    const cleanUsername = baseUsername.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+    let username = cleanUsername;
+    let counter = 1;
+
+    while (await this.prisma.user.findUnique({ where: { username } })) {
+      username = `${cleanUsername}${counter}`;
+      counter++;
+    }
+
+    return username;
+  }
+
+  /**
+   * Link OAuth account to existing user
+   */
+  async linkOAuthAccount(
+    userId: string,
+    providerName: string,
+    code: string
+  ): Promise<OAuthAccount> {
+    // Exchange code for tokens
+    const oauthTokens = await this.exchangeCodeForToken(providerName, code);
+    const userInfo = await this.getUserInfo(providerName, oauthTokens.accessToken);
+
+    // Check if OAuth account is already linked to another user
+    const existingAccount = await this.prisma.oAuthAccount.findUnique({
+      where: {
+        provider_providerId: {
+          provider: providerName,
+          providerId: userInfo.id
+        }
+      }
+    });
+
+    if (existingAccount && existingAccount.userId !== userId) {
+      throw new Error('OAuth account is already linked to another user');
+    }
+
+    if (existingAccount) {
+      // Update existing account
+      return this.prisma.oAuthAccount.update({
+        where: { id: existingAccount.id },
+        data: {
+          accessToken: oauthTokens.accessToken,
+          refreshToken: oauthTokens.refreshToken,
+          expiresAt: oauthTokens.expiresAt,
+          providerData: userInfo.raw
+        }
+      });
+    } else {
+      // Create new OAuth account link
+      return this.prisma.oAuthAccount.create({
+        data: {
+          userId,
+          provider: providerName,
+          providerId: userInfo.id,
+          accessToken: oauthTokens.accessToken,
+          refreshToken: oauthTokens.refreshToken,
+          expiresAt: oauthTokens.expiresAt,
+          providerData: userInfo.raw
+        }
+      });
+    }
+  }
+
+  /**
+   * Unlink OAuth account
+   */
+  async unlinkOAuthAccount(userId: string, providerName: string): Promise<void> {
+    await this.prisma.oAuthAccount.deleteMany({
+      where: {
+        userId,
+        provider: providerName
+      }
+    });
+  }
+
+  /**
+   * Get user's OAuth accounts
+   */
+  async getUserOAuthAccounts(userId: string): Promise<OAuthAccount[]> {
+    return this.prisma.oAuthAccount.findMany({
+      where: { userId },
+      orderBy: { provider: 'asc' }
+    });
+  }
+
+  /**
+   * Refresh OAuth token if supported
+   */
+  async refreshOAuthToken(accountId: string): Promise<OAuthAccount> {
+    const account = await this.prisma.oAuthAccount.findUnique({
+      where: { id: accountId }
+    });
+
+    if (!account || !account.refreshToken) {
+      throw new Error('OAuth account not found or no refresh token available');
+    }
+
+    const provider = this.getProvider(account.provider);
+    if (!provider) {
+      throw new Error(`OAuth provider '${account.provider}' not configured`);
+    }
+
+    const response = await fetch(provider.tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json'
+      },
+      body: new URLSearchParams({
+        grant_type: 'refresh_token',
+        client_id: provider.clientId,
+        client_secret: provider.clientSecret,
+        refresh_token: account.refreshToken
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to refresh OAuth token: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+
+    return this.prisma.oAuthAccount.update({
+      where: { id: accountId },
+      data: {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token || account.refreshToken,
+        expiresAt: data.expires_in ? new Date(Date.now() + data.expires_in * 1000) : account.expiresAt
+      }
+    });
+  }
+}

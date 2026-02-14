@@ -1,0 +1,712 @@
+// Enhanced Prisma schema file with advanced features
+// This extends the existing schema with power-user features
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Authentication & User Management Models (Enhanced)
+model User {
+  id            String       @id @default(cuid())
+  username      String       @unique
+  email         String       @unique
+  password      String?      // Optional for OAuth users
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  emailVerified Boolean      @default(false)
+  isActive      Boolean      @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Enhanced user preferences
+  preferences   Json?        // Theme, notifications, dashboard config
+  timezone      String?      @default("UTC")
+  language      String?      @default("en")
+
+  // Relations
+  userRoles            UserRole[]
+  sessions             Session[]
+  oauthAccounts        OAuthAccount[]
+  missions             Mission[]    // Missions assigned to user
+  comments             Comment[]    // Comments created by user
+  missionTemplates     MissionTemplate[] // Templates created by user
+  workflowRules        WorkflowRule[]    // Workflow rules created by user
+  reportSchedules      ReportSchedule[]  // Report schedules created by user
+  bulkOperations       BulkOperation[]   // Bulk operations initiated by user
+  tags                 Tag[]            // Tags created by user
+  
+  // Analytics tracking
+  userAnalytics        UserAnalytic[]
+  assignedMissions     Mission[] @relation("MissionAssignee")
+
+  @@map("users")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  isDefault   Boolean      @default(false)
+  permissions Json?        // Additional permission data
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  userRoles   UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  resource    String       // e.g., 'missions', 'agents', 'users'
+  action      String       // e.g., 'create', 'read', 'update', 'delete'
+  scope       String?      // e.g., 'own', 'team', 'all'
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  type      SessionType @default(ACCESS)
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OAuthAccount {
+  id           String @id @default(cuid())
+  userId       String
+  provider     String
+  providerId   String
+  providerData Json?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+// Enhanced Agent Model
+model Agent {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  status      AgentStatus @default(IDLE)
+  capabilities String[]   @default([])
+  version     String?     @default("1.0.0")
+  metadata    Json?
+  
+  // Performance tracking
+  totalMissions    Int @default(0)
+  completedMissions Int @default(0)
+  avgCompletionTime Float? // in minutes
+  successRate      Float? @default(0.0) // percentage
+  lastActiveAt     DateTime?
+  
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  missions    Mission[]
+  comments    Comment[]
+  analytics   AgentAnalytic[]
+
+  @@map("agents")
+}
+
+// Enhanced Mission Model with advanced features
+model Mission {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  status      MissionStatus @default(PENDING)
+  priority    Priority      @default(MEDIUM)
+  
+  // Enhanced assignment
+  agentId     String?
+  agent       Agent?        @relation(fields: [agentId], references: [id])
+  userId      String?       // User who created the mission
+  user        User?         @relation(fields: [userId], references: [id])
+  assigneeId  String?       // User assigned to work on the mission
+  assignee    User?         @relation("MissionAssignee", fields: [assigneeId], references: [id])
+  
+  // Progress and timing
+  progress    Int           @default(0) // 0-100
+  estimatedDuration Float?  // in hours
+  actualDuration    Float?  // in hours
+  
+  // Mission template reference
+  templateId  String?
+  template    MissionTemplate? @relation(fields: [templateId], references: [id])
+  
+  // Metadata and configuration
+  metadata    Json?
+  config      Json?         // Mission-specific configuration
+  
+  // Timestamps
+  dueDate     DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  // Relations
+  comments    Comment[]
+  files       File[]
+  tags        MissionTag[]
+  dependencies  MissionDependency[] @relation("DependentMission")
+  dependents    MissionDependency[] @relation("BlockerMission")
+  bulkOperationItems BulkOperationItem[]
+  analytics   MissionAnalytic[]
+
+  // Full text search
+  searchVector String? // For PostgreSQL full-text search
+
+  @@index([status, priority])
+  @@index([agentId, status])
+  @@index([userId, status])
+  @@index([createdAt])
+  @@index([dueDate])
+  @@map("missions")
+}
+
+// Mission Template System
+model MissionTemplate {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  category    String?
+  
+  // Template structure
+  template    Json     // JSON structure of the mission template
+  defaultConfig Json?  // Default configuration for missions created from this template
+  
+  // Metadata
+  isPublic    Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  version     String   @default("1.0.0")
+  
+  // Creator
+  createdBy   String
+  user        User     @relation(fields: [createdBy], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  missions    Mission[]
+  tags        TemplateTag[]
+
+  @@map("mission_templates")
+}
+
+// Advanced Tagging System
+model Tag {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  color       String?  @default("#3B82F6") // Hex color
+  description String?
+  category    String?  // e.g., "priority", "department", "type"
+  
+  // Tag properties
+  isSystem    Boolean  @default(false) // System-created tags
+  isActive    Boolean  @default(true)
+  
+  // Creator
+  createdBy   String?
+  user        User?    @relation(fields: [createdBy], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  missionTags MissionTag[]
+  templateTags TemplateTag[]
+
+  @@map("tags")
+}
+
+model MissionTag {
+  id        String   @id @default(cuid())
+  missionId String
+  tagId     String
+  
+  mission   Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  addedAt   DateTime @default(now())
+  addedBy   String?  // User who added the tag
+  
+  @@unique([missionId, tagId])
+  @@map("mission_tags")
+}
+
+model TemplateTag {
+  id         String          @id @default(cuid())
+  templateId String
+  tagId      String
+  
+  template   MissionTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  tag        Tag             @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  
+  @@unique([templateId, tagId])
+  @@map("template_tags")
+}
+
+// Mission Dependencies
+model MissionDependency {
+  id                String   @id @default(cuid())
+  dependentMissionId String  // Mission that depends on another
+  blockerMissionId  String   // Mission that blocks the dependent
+  
+  dependentMission  Mission  @relation("DependentMission", fields: [dependentMissionId], references: [id], onDelete: Cascade)
+  blockerMission    Mission  @relation("BlockerMission", fields: [blockerMissionId], references: [id], onDelete: Cascade)
+  
+  type              DependencyType @default(BLOCKS)
+  isActive          Boolean  @default(true)
+  
+  createdAt         DateTime @default(now())
+  
+  @@unique([dependentMissionId, blockerMissionId])
+  @@map("mission_dependencies")
+}
+
+// File Upload System
+model File {
+  id          String     @id @default(cuid())
+  filename    String
+  originalName String
+  mimeType    String
+  size        Int        // in bytes
+  path        String     // File system path
+  url         String?    // Public URL if applicable
+  checksum    String?    // File integrity check
+  
+  // File metadata
+  metadata    Json?      // Additional file properties
+  isPublic    Boolean    @default(false)
+  
+  // Relations
+  missionId   String?
+  mission     Mission?   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  
+  uploadedBy  String?    // User who uploaded the file
+  
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([missionId])
+  @@index([mimeType])
+  @@map("files")
+}
+
+// Automated Workflow Rules
+model WorkflowRule {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  
+  // Rule configuration
+  triggerEvent WorkflowTrigger // What triggers this rule
+  conditions   Json            // Conditions that must be met
+  actions      Json            // Actions to take when triggered
+  
+  // Rule properties
+  isActive    Boolean          @default(true)
+  priority    Int              @default(0) // Higher numbers = higher priority
+  
+  // Creator
+  createdBy   String
+  user        User             @relation(fields: [createdBy], references: [id])
+  
+  // Execution tracking
+  lastTriggered DateTime?
+  executionCount Int           @default(0)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  executions  WorkflowExecution[]
+
+  @@map("workflow_rules")
+}
+
+model WorkflowExecution {
+  id          String       @id @default(cuid())
+  ruleId      String
+  rule        WorkflowRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  
+  // Execution details
+  triggeredBy String       // What triggered this execution
+  context     Json         // Context data when rule was triggered
+  result      Json?        // Execution result
+  status      ExecutionStatus @default(PENDING)
+  error       String?      // Error message if failed
+  
+  startedAt   DateTime     @default(now())
+  completedAt DateTime?
+
+  @@index([ruleId, startedAt])
+  @@map("workflow_executions")
+}
+
+// Bulk Operations
+model BulkOperation {
+  id          String            @id @default(cuid())
+  name        String
+  operation   BulkOperationType
+  
+  // Operation configuration
+  filters     Json              // Filters to select missions
+  actions     Json              // Actions to perform
+  
+  // Status and progress
+  status      BulkOperationStatus @default(PENDING)
+  totalItems  Int               @default(0)
+  processedItems Int            @default(0)
+  successfulItems Int           @default(0)
+  failedItems Int               @default(0)
+  
+  // Creator
+  createdBy   String
+  user        User              @relation(fields: [createdBy], references: [id])
+  
+  // Execution tracking
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime          @default(now())
+  
+  // Relations
+  items       BulkOperationItem[]
+
+  @@map("bulk_operations")
+}
+
+model BulkOperationItem {
+  id              String        @id @default(cuid())
+  bulkOperationId String
+  bulkOperation   BulkOperation @relation(fields: [bulkOperationId], references: [id], onDelete: Cascade)
+  
+  missionId       String
+  mission         Mission       @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  
+  status          ItemStatus    @default(PENDING)
+  result          Json?         // Result of the operation on this item
+  error           String?       // Error message if failed
+  
+  processedAt     DateTime?
+
+  @@index([bulkOperationId, status])
+  @@map("bulk_operation_items")
+}
+
+// Analytics and Reporting
+model UserAnalytic {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Metrics
+  date        DateTime @db.Date
+  missionsCreated Int  @default(0)
+  missionsCompleted Int @default(0)
+  activeTime  Int      @default(0) // in minutes
+  loginCount  Int      @default(0)
+  
+  // Performance metrics
+  avgCompletionTime Float? // in hours
+  productivityScore Float? // calculated score
+  
+  @@unique([userId, date])
+  @@index([date])
+  @@map("user_analytics")
+}
+
+model AgentAnalytic {
+  id          String   @id @default(cuid())
+  agentId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  // Metrics
+  date        DateTime @db.Date
+  missionsAssigned Int @default(0)
+  missionsCompleted Int @default(0)
+  avgCompletionTime Float? // in hours
+  successRate Float?  // percentage
+  uptime      Int      @default(0) // in minutes
+  
+  @@unique([agentId, date])
+  @@index([date])
+  @@map("agent_analytics")
+}
+
+model MissionAnalytic {
+  id          String   @id @default(cuid())
+  missionId   String
+  mission     Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  
+  // Tracking events
+  event       AnalyticEvent
+  timestamp   DateTime @default(now())
+  data        Json?    // Event-specific data
+  
+  @@index([missionId, timestamp])
+  @@index([event, timestamp])
+  @@map("mission_analytics")
+}
+
+// Report Scheduling
+model ReportSchedule {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  
+  // Report configuration
+  reportType  ReportType
+  filters     Json         // Filters for the report
+  format      ReportFormat @default(PDF)
+  
+  // Scheduling
+  schedule    String       // Cron expression
+  timezone    String       @default("UTC")
+  isActive    Boolean      @default(true)
+  
+  // Recipients
+  recipients  String[]     @default([]) // Email addresses
+  
+  // Creator
+  createdBy   String
+  user        User         @relation(fields: [createdBy], references: [id])
+  
+  // Execution tracking
+  lastRun     DateTime?
+  nextRun     DateTime?
+  runCount    Int          @default(0)
+  
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  executions  ReportExecution[]
+
+  @@map("report_schedules")
+}
+
+model ReportExecution {
+  id          String        @id @default(cuid())
+  scheduleId  String
+  schedule    ReportSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  
+  status      ExecutionStatus @default(PENDING)
+  filePath    String?       // Generated report file path
+  fileSize    Int?          // File size in bytes
+  error       String?       // Error message if failed
+  
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+
+  @@index([scheduleId, startedAt])
+  @@map("report_executions")
+}
+
+model Comment {
+  id        String      @id @default(cuid())
+  content   String
+  type      CommentType @default(NOTE)
+  
+  // Enhanced comment features
+  isInternal Boolean     @default(false) // Internal vs external comments
+  mentions  String[]    @default([])     // User IDs mentioned in comment
+  
+  agentId   String?
+  agent     Agent?      @relation(fields: [agentId], references: [id])
+  userId    String?     // User who created the comment
+  user      User?       @relation(fields: [userId], references: [id])
+  missionId String?
+  mission   Mission?    @relation(fields: [missionId], references: [id])
+  
+  metadata  Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([missionId, createdAt])
+  @@map("comments")
+}
+
+// Enums
+enum AgentStatus {
+  IDLE
+  BUSY
+  OFFLINE
+  ERROR
+  MAINTENANCE
+}
+
+enum MissionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+  ON_HOLD
+  BLOCKED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+  CRITICAL
+}
+
+enum CommentType {
+  NOTE
+  SYSTEM
+  ERROR
+  WARNING
+  SUCCESS
+  MENTION
+}
+
+enum SessionType {
+  ACCESS
+  REFRESH
+  RESET_PASSWORD
+  EMAIL_VERIFICATION
+}
+
+enum DependencyType {
+  BLOCKS
+  REQUIRES
+  RELATED
+}
+
+enum WorkflowTrigger {
+  MISSION_CREATED
+  MISSION_UPDATED
+  MISSION_COMPLETED
+  MISSION_FAILED
+  AGENT_STATUS_CHANGED
+  USER_ACTION
+  SCHEDULED
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum BulkOperationType {
+  UPDATE_STATUS
+  ASSIGN_AGENT
+  ADD_TAGS
+  REMOVE_TAGS
+  UPDATE_PRIORITY
+  SET_DUE_DATE
+  DELETE_MISSIONS
+  EXPORT_DATA
+}
+
+enum BulkOperationStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ItemStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  SKIPPED
+}
+
+enum AnalyticEvent {
+  CREATED
+  STARTED
+  PROGRESS_UPDATED
+  COMPLETED
+  FAILED
+  ASSIGNED
+  REASSIGNED
+  TAGGED
+  COMMENTED
+  DEPENDENCY_ADDED
+  DEPENDENCY_RESOLVED
+}
+
+enum ReportType {
+  MISSION_SUMMARY
+  AGENT_PERFORMANCE
+  USER_PRODUCTIVITY
+  SYSTEM_OVERVIEW
+  CUSTOM_QUERY
+}
+
+enum ReportFormat {
+  PDF
+  CSV
+  EXCEL
+  JSON
+}

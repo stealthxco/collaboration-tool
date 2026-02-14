@@ -1,0 +1,220 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Authentication & User Management Models
+model User {
+  id            String       @id @default(cuid())
+  username      String       @unique
+  email         String       @unique
+  password      String?      // Optional for OAuth users
+  firstName     String?
+  lastName      String?
+  avatar        String?
+  emailVerified Boolean      @default(false)
+  isActive      Boolean      @default(true)
+  lastLoginAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  // Relations
+  userRoles     UserRole[]
+  sessions      Session[]
+  oauthAccounts OAuthAccount[]
+  missions      Mission[]    // Missions assigned to user
+  comments      Comment[]    // Comments created by user
+
+  @@map("users")
+}
+
+model Role {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  isDefault   Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  userRoles   UserRole[]
+  rolePermissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String       @id @default(cuid())
+  name        String       @unique
+  description String?
+  resource    String       // e.g., 'missions', 'agents', 'users'
+  action      String       // e.g., 'create', 'read', 'update', 'delete'
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  // Relations
+  rolePermissions RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  id     String @id @default(cuid())
+  userId String
+  roleId String
+  
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  id           String     @id @default(cuid())
+  roleId       String
+  permissionId String
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  type      SessionType @default(ACCESS)
+  expiresAt DateTime
+  isRevoked Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model OAuthAccount {
+  id           String @id @default(cuid())
+  userId       String
+  provider     String
+  providerId   String
+  providerData Json?
+  accessToken  String?
+  refreshToken String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  user         User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@map("oauth_accounts")
+}
+
+model Agent {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  status      AgentStatus @default(IDLE)
+  capabilities String[]   @default([])
+  metadata    Json?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  missions    Mission[]
+  comments    Comment[]
+
+  @@map("agents")
+}
+
+model Mission {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  status      MissionStatus @default(PENDING)
+  priority    Priority      @default(MEDIUM)
+  agentId     String?
+  agent       Agent?        @relation(fields: [agentId], references: [id])
+  userId      String?       // User who created/assigned the mission
+  user        User?         @relation(fields: [userId], references: [id])
+  assigneeId  String?       // User assigned to work on the mission
+  progress    Int           @default(0) // 0-100
+  metadata    Json?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  
+  // Relations
+  comments    Comment[]
+
+  @@map("missions")
+}
+
+model Comment {
+  id        String      @id @default(cuid())
+  content   String
+  type      CommentType @default(NOTE)
+  agentId   String?
+  agent     Agent?      @relation(fields: [agentId], references: [id])
+  userId    String?     // User who created the comment
+  user      User?       @relation(fields: [userId], references: [id])
+  missionId String?
+  mission   Mission?    @relation(fields: [missionId], references: [id])
+  metadata  Json?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@map("comments")
+}
+
+enum AgentStatus {
+  IDLE
+  BUSY
+  OFFLINE
+  ERROR
+}
+
+enum MissionStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum CommentType {
+  NOTE
+  SYSTEM
+  ERROR
+  WARNING
+  SUCCESS
+}
+
+enum SessionType {
+  ACCESS
+  REFRESH
+  RESET_PASSWORD
+  EMAIL_VERIFICATION
+}

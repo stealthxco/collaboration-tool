@@ -1,0 +1,51 @@
+{
+  "name": "mission-control-backend",
+  "version": "1.0.0",
+  "description": "Mission Control Backend - Fastify API with PostgreSQL, Redis, and WebSockets",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "dev:build": "nodemon --exec \"npm run build && npm run start\"",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "db:generate": "prisma generate",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx src/scripts/seed.ts",
+    "db:seed-auth": "tsx src/scripts/seed-auth.ts"
+  },
+  "keywords": [
+    "api",
+    "backend",
+    "mission-control",
+    "express"
+  ],
+  "author": "Mission Control Team",
+  "license": "MIT",
+  "dependencies": {
+    "@fastify/cors": "^8.4.2",
+    "@fastify/websocket": "^9.0.0",
+    "@prisma/client": "^5.8.1",
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.25.2",
+    "fastify-multer": "^2.0.3",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "prisma": "^5.8.1",
+    "socket.io": "^4.7.4"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.19.33",
+    "nodemon": "^3.1.11",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,0 +1,17 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm ci && npm run build"
+
+[deploy]
+startCommand = "npm run preview -- --port $PORT --host 0.0.0.0"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 10
+
+[env]
+PORT = "3000"
+NODE_ENV = "production"
+
+[nixpacks]
+aptPkgs = ["ca-certificates"]

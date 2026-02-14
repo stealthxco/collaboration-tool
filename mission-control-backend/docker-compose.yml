@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: mission-control-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: mission_control
+      POSTGRES_USER: mission_user
+      POSTGRES_PASSWORD: mission_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mission_user -d mission_control"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: mission-control-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass redis_pass
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Mission Control Backend API
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mission-control-api
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://mission_user:mission_pass@postgres:5432/mission_control
+      REDIS_URL: redis://:redis_pass@redis:6379
+      JWT_SECRET: your-production-jwt-secret-here
+    volumes:
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Development API (alternative to production build)
+  api-dev:
+    image: node:20-alpine
+    container_name: mission-control-api-dev
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://mission_user:mission_pass@postgres:5432/mission_control
+      REDIS_URL: redis://:redis_pass@redis:6379
+      JWT_SECRET: development-secret-key
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run db:generate && npm run dev"
+    profiles:
+      - development
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  default:
+    name: mission-control-network
