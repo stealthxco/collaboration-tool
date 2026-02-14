@@ -1,0 +1,51 @@
+{
+  "name": "mission-control",
+  "version": "1.0.0",
+  "description": "Mission Control - Full Stack Application with React Frontend and Node.js Backend",
+  "private": true,
+  "workspaces": [
+    "mission-control-frontend",
+    "mission-control-backend"
+  ],
+  "scripts": {
+    "start": "npm run start:backend",
+    "start:backend": "npm --workspace=mission-control-backend run start",
+    "start:frontend": "npm --workspace=mission-control-frontend run dev",
+    "build": "npm run build:backend && npm run build:frontend",
+    "build:backend": "npm --workspace=mission-control-backend run build",
+    "build:frontend": "npm --workspace=mission-control-frontend run build",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "npm --workspace=mission-control-backend run dev",
+    "dev:frontend": "npm --workspace=mission-control-frontend run dev",
+    "install:all": "npm install && npm --workspace=mission-control-backend install && npm --workspace=mission-control-frontend install",
+    "clean": "rm -rf node_modules && rm -rf mission-control-backend/node_modules && rm -rf mission-control-frontend/node_modules",
+    "test": "npm --workspace=mission-control-backend run test && npm --workspace=mission-control-frontend run test",
+    "db:generate": "npm --workspace=mission-control-backend run db:generate",
+    "db:migrate": "npm --workspace=mission-control-backend run db:migrate",
+    "db:push": "npm --workspace=mission-control-backend run db:push",
+    "db:seed": "npm --workspace=mission-control-backend run db:seed",
+    "lint": "npm --workspace=mission-control-backend run lint && npm --workspace=mission-control-frontend run lint",
+    "format": "npm --workspace=mission-control-backend run format && npm --workspace=mission-control-frontend run format"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/mission-control.git"
+  },
+  "keywords": [
+    "mission-control",
+    "collaboration",
+    "project-management",
+    "react",
+    "nodejs",
+    "fullstack"
+  ],
+  "author": "Mission Control Team",
+  "license": "MIT"
+}
